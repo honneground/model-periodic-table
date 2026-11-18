@@ -1,0 +1,3125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Periodic Alphabet</title>
+  <link
+    rel="icon"
+    type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cstyle%3Epath%7Bfill:%231f2328%7D@media(prefers-color-scheme:dark)%7Bpath%7Bfill:%23f0f3f8%7D%7D%3C/style%3E%3Cpath d='M12 2C12.7 7.6 16.4 11.3 22 12C16.4 12.7 12.7 16.4 12 22C11.3 16.4 7.6 12.7 2 12C7.6 11.3 11.3 7.6 12 2Z'/%3E%3C/svg%3E"
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react@18.3.1/umd/react.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
+  <script crossorigin src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.26.4/babel.min.js"></script>
+  <style>
+    :root {
+      --bg-base: #000000;
+      --bg-surface: #1e1f20;
+      --bg-input: #1e1f20;
+      --bg-cell-default: #1e2024;
+      --bg-panel: #1e1f20;
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-soft: rgba(255, 255, 255, 0.04);
+      --text-primary: #e3e3e3;
+      --text-secondary: #c4c7c5;
+      --text-muted: #8e918f;
+      --bard-color-lm-glow-chat: #1f3b9b;
+      --bard-color-lm-glow-task: #3631a5;
+      --bard-color-lm-glow-bloom: #000000;
+      --gem-sys-shape--corner-extra-large-increased: 32px;
+      --font-sans: 'Google Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      min-height: 100%;
+      background-color: #000000;
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+
+    button, input {
+      font-family: inherit;
+      color: inherit;
+    }
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Main Ambient Stage & Mode-Aware Glow */
+        .stage {
+      position: relative;
+      min-height: 100vh;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 24px;
+      isolation: isolate;
+      background-color: #000000;
+    }
+
+    /* =========================================================================
+       Ambient Glow System (Faithful to Google Full & Split-screen Specs)
+       ========================================================================= */
+    @keyframes glowEnter {
+      0% {
+        opacity: 0;
+        transform: scale(0.92);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .ambient-glow {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: -1;
+      overflow: clip;
+      animation: glowEnter 1300ms cubic-bezier(0.2, 0, 0, 1) forwards;
+    }
+
+    /* Atmospheric diffusion backdrop layers for seamless crossfade between Chat and Task */
+    .ambient-glow-backdrop {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 900ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    /* Chat Mode Backdrop: Peak centered at 58% 64% with deep navy blue (#142769 / #1f3b9b) */
+    .ambient-backdrop-chat {
+      background: radial-gradient(
+        ellipse 58vw 46vh at 58% 64%,
+        rgba(26, 50, 138, 0.48) 0%,
+        rgba(16, 32, 88, 0.28) 40%,
+        rgba(8, 16, 48, 0.08) 72%,
+        transparent 100%
+      );
+    }
+
+    /* Task Mode Backdrop: Peak centered at 54% 58% with saturated indigo (#3631a5 / #333693) */
+    .ambient-backdrop-task {
+      background: radial-gradient(
+        ellipse 62vw 48vh at 54% 58%,
+        rgba(46, 42, 142, 0.50) 0%,
+        rgba(28, 24, 96, 0.30) 40%,
+        rgba(10, 8, 42, 0.10) 72%,
+        transparent 100%
+      );
+    }
+
+    .ambient-glow.is-chat .ambient-backdrop-chat {
+      opacity: 1;
+    }
+
+    .ambient-glow.is-task .ambient-backdrop-task {
+      opacity: 1;
+    }
+
+    /* Official SVG Mask Layer directly matching Google 全屏.html */
+    .ambient-glow-layer {
+      position: absolute;
+      left: 50%;
+      top: calc(50% + 15px);
+      transform: translate(-50%, -50%);
+      margin: 0 auto;
+      max-width: 1601.2656px;
+      width: 202.18%;
+      aspect-ratio: 1.4338;
+      -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjIwNzAiIHZpZXdCb3g9IjAgMCAxNDg0IDIwNzAiPgo8c3ZnIHk9IjAiIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjEwMzUiIHZpZXdCb3g9Ii0xMjUgLTEyNSAxNDg0IDEwMzUiPjxmaWx0ZXIgaWQ9ImIiIHg9Ii0xMjUiIHk9Ii0xMjUiIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjEwMzUiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMjUiLz48L2ZpbHRlcj48cGF0aCBkPSJNOTg0IDM3MS41Qzk4NCA0MzguNjAzIDkyOS42MDMgNDkzIDg2Mi41IDQ5M0w3NTcuMDAxIDQ5M0M3MzcuNDQ2IDUxOC41MzQgNzA2LjY0NiA1MzUgNjcyIDUzNUw1MzAgNTM1QzQ4Mi40MjEgNTM1IDQ0Mi4wOTYgNTAzLjk0NSA0MjguMTg3IDQ2MUwzMzMgNDYxQzI4Ny4xNiA0NjEgMjUwIDQyMy44NCAyNTAgMzc4QzI1MCAzMzIuMTYgMjg3LjE2IDI5NSAzMzMgMjk1TDQzNiAyOTVDNDYxLjgwMyAyOTUgNDg0Ljg1NiAzMDYuNzc0IDUwMC4wNzkgMzI1LjI0MkM1MDkuNTc0IDMyMi40ODIgNTE5LjYxNCAzMjEgNTMwIDMyMUw1OTQuOTYzIDMyMUM2MTQuMTMzIDI3OS4xMDcgNjU2LjQxNiAyNTAgNzA1LjUgMjUwTDg2Mi41IDI1MEM5MjkuNjAzIDI1MCA5ODQgMzA0LjM5NyA5ODQgMzcxLjVaIiBmaWxsPSIjZmZmIiBmaWx0ZXI9InVybCgjYikiLz48L3N2Zz4KPHN2ZyB5PSIxMDM1IiB3aWR0aD0iMTQ4NCIgaGVpZ2h0PSIxMDM1IiB2aWV3Qm94PSItMTI1IC0xMjUgMTQ4NCAxMDM1Ij48ZmlsdGVyIGlkPSJsIiB4PSI5OC4wOTEiIHk9Ii02MC4wNjk5IiB3aWR0aD0iOTk2LjM3NSIgaGVpZ2h0PSI2MzguMzczOSIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjUwIi8+PC9maWx0ZXI+PHBhdGggZD0iTTkzNy43NjMgMzY1LjMwNkM5MzEuMDYgNDAzLjEgODk0Ljk4OCA0MjguMzA0IDg1Ny4xOTQgNDIxLjYwMUw1OTMuMzEyIDM3NC44MDFDNTgwLjgzIDM3Mi41ODcgNTY5LjcyMyAzNjcuMTY5IDU2MC42ODQgMzU5LjU0NUM1MzYuMzg5IDM3Mi42MTQgNTA3LjY4NCAzNzcuODk4IDQ3OC40MTIgMzcyLjcwN0wzNjMuMjEgMzUyLjI3NkMyOTQuMTQ4IDM0MC4wMjcgMjQ4LjA5MSAyNzQuMTExIDI2MC4zMzkgMjA1LjA0OUMyNzIuNTg4IDEzNS45ODcgMzM4LjUwMyA4OS45MzAxIDQwNy41NjUgMTAyLjE3OEw1MjIuNzY4IDEyMi42MTBDNTgxLjY1MyAxMzMuMDUzIDYyMy44MTQgMTgyLjUxMyA2MjcuMzY4IDIzOS42NzJMODgxLjQ2NyAyODQuNzM3QzkxOS4yNjEgMjkxLjQ0IDk0NC40NjYgMzI3LjUxMiA5MzcuNzYzIDM2NS4zMDZaIiBmaWxsPSIjZmZmIiBmaWx0ZXI9InVybCgjbCkiLz48L3N2Zz4KPC9zdmc+");
+      mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjIwNzAiIHZpZXdCb3g9IjAgMCAxNDg0IDIwNzAiPgo8c3ZnIHk9IjAiIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjEwMzUiIHZpZXdCb3g9Ii0xMjUgLTEyNSAxNDg0IDEwMzUiPjxmaWx0ZXIgaWQ9ImIiIHg9Ii0xMjUiIHk9Ii0xMjUiIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjEwMzUiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMjUiLz48L2ZpbHRlcj48cGF0aCBkPSJNOTg0IDM3MS41Qzk4NCA0MzguNjAzIDkyOS42MDMgNDkzIDg2Mi41IDQ5M0w3NTcuMDAxIDQ5M0M3MzcuNDQ2IDUxOC41MzQgNzA2LjY0NiA1MzUgNjcyIDUzNUw1MzAgNTM1QzQ4Mi40MjEgNTM1IDQ0Mi4wOTYgNTAzLjk0NSA0MjguMTg3IDQ2MUwzMzMgNDYxQzI4Ny4xNiA0NjEgMjUwIDQyMy44NCAyNTAgMzc4QzI1MCAzMzIuMTYgMjg3LjE2IDI5NSAzMzMgMjk1TDQzNiAyOTVDNDYxLjgwMyAyOTUgNDg0Ljg1NiAzMDYuNzc0IDUwMC4wNzkgMzI1LjI0MkM1MDkuNTc0IDMyMi40ODIgNTE5LjYxNCAzMjEgNTMwIDMyMUw1OTQuOTYzIDMyMUM2MTQuMTMzIDI3OS4xMDcgNjU2LjQxNiAyNTAgNzA1LjUgMjUwTDg2Mi41IDI1MEM5MjkuNjAzIDI1MCA5ODQgMzA0LjM5NyA5ODQgMzcxLjVaIiBmaWxsPSIjZmZmIiBmaWx0ZXI9InVybCgjYikiLz48L3N2Zz4KPHN2ZyB5PSIxMDM1IiB3aWR0aD0iMTQ4NCIgaGVpZ2h0PSIxMDM1IiB2aWV3Qm94PSItMTI1IC0xMjUgMTQ4NCAxMDM1Ij48ZmlsdGVyIGlkPSJsIiB4PSI5OC4wOTEiIHk9Ii02MC4wNjk5IiB3aWR0aD0iOTk2LjM3NSIgaGVpZ2h0PSI2MzguMzczOSIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjUwIi8+PC9maWx0ZXI+PHBhdGggZD0iTTkzNy43NjMgMzY1LjMwNkM5MzEuMDYgNDAzLjEgODk0Ljk4OCA0MjguMzA0IDg1Ny4xOTQgNDIxLjYwMUw1OTMuMzEyIDM3NC44MDFDNTgwLjgzIDM3Mi41ODcgNTY5LjcyMyAzNjcuMTY5IDU2MC42ODQgMzU5LjU0NUM1MzYuMzg5IDM3Mi42MTQgNTA3LjY4NCAzNzcuODk4IDQ3OC40MTIgMzcyLjcwN0wzNjMuMjEgMzUyLjI3NkMyOTQuMTQ4IDM0MC4wMjcgMjQ4LjA5MSAyNzQuMTExIDI2MC4zMzkgMjA1LjA0OUMyNzIuNTg4IDEzNS45ODcgMzM4LjUwMyA4OS45MzAxIDQwNy41NjUgMTAyLjE3OEw1MjIuNzY4IDEyMi42MTBDNTgxLjY1MyAxMzMuMDUzIDYyMy44MTQgMTgyLjUxMyA2MjcuMzY4IDIzOS42NzJMODgxLjQ2NyAyODQuNzM3QzkxOS4yNjEgMjkxLjQ0IDk0NC40NjYgMzI3LjUxMiA5MzcuNzYzIDM2NS4zMDZaIiBmaWxsPSIjZmZmIiBmaWx0ZXI9InVybCgjbCkiLz48L3N2Zz4KPC9zdmc+");
+      -webkit-mask-size: 100% 200%;
+      mask-size: 100% 200%;
+      -webkit-mask-position: 0 0;
+      mask-position: 0 0;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 1200ms cubic-bezier(0.2, 0, 0, 1);
+    }
+
+    .ambient-glow-chat {
+      background: radial-gradient(
+        ellipse 42% 100% at 66% 81%,
+        var(--bard-color-lm-glow-chat) 0%,
+        var(--bard-color-lm-glow-chat) 50%,
+        var(--bard-color-lm-glow-chat) 100%
+      );
+    }
+
+    .ambient-glow-task {
+      background: radial-gradient(
+        ellipse 50% 95% at 54% 60%,
+        var(--bard-color-lm-glow-task) 0%,
+        #312e94 50%,
+        #252478 100%
+      );
+    }
+
+    .ambient-glow.is-chat .ambient-glow-chat {
+      opacity: 0.95;
+    }
+
+    .ambient-glow.is-task .ambient-glow-task {
+      opacity: 0.95;
+    }
+
+    /* Official Bloom Ambient Layer */
+    .ambient-glow:after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: calc(50% + 15px);
+      transform: translate(-50%, -50%);
+      margin: 0 auto;
+      max-width: 1601.2656px;
+      width: 202.18%;
+      aspect-ratio: 1.4338;
+      -webkit-mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjIwNzAiIHZpZXdCb3g9IjAgMCAxNDg0IDIwNzAiPgo8c3ZnIHk9IjAiIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjEwMzUiIHZpZXdCb3g9Ii0xMjUgLTEyNSAxNDg0IDEwMzUiPjxmaWx0ZXIgaWQ9ImIiIHg9Ii0xMjUiIHk9Ii0xMjUiIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjEwMzUiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMjUiLz48L2ZpbHRlcj48cGF0aCBkPSJNOTg0IDM3MS41Qzk4NCA0MzguNjAzIDkyOS42MDMgNDkzIDg2Mi41IDQ5M0w3NTcuMDAxIDQ5M0M3MzcuNDQ2IDUxOC41MzQgNzA2LjY0NiA1MzUgNjcyIDUzNUw1MzAgNTM1QzQ4Mi40MjEgNTM1IDQ0Mi4wOTYgNTAzLjk0NSA0MjguMTg3IDQ2MUwzMzMgNDYxQzI4Ny4xNiA0NjEgMjUwIDQyMy44NCAyNTAgMzc4QzI1MCAzMzIuMTYgMjg3LjE2IDI5NSAzMzMgMjk1TDQzNiAyOTVDNDYxLjgwMyAyOTUgNDg0Ljg1NiAzMDYuNzc0IDUwMC4wNzkgMzI1LjI0MkM1MDkuNTc0IDMyMi40ODIgNTE5LjYxNCAzMjEgNTMwIDMyMUw1OTQuOTYzIDMyMUM2MTQuMTMzIDI3OS4xMDcgNjU2LjQxNiAyNTAgNzA1LjUgMjUwTDg2Mi41IDI1MEM5MjkuNjAzIDI1MCA5ODQgMzA0LjM5NyA5ODQgMzcxLjVaIiBmaWxsPSIjZmZmIiBmaWx0ZXI9InVybCgjYikiLz48L3N2Zz4KPHN2ZyB5PSIxMDM1IiB3aWR0aD0iMTQ4NCIgaGVpZ2h0PSIxMDM1IiB2aWV3Qm94PSItMTI1IC0xMjUgMTQ4NCAxMDM1Ij48ZmlsdGVyIGlkPSJsIiB4PSI5OC4wOTEiIHk9Ii02MC4wNjk5IiB3aWR0aD0iOTk2LjM3NSIgaGVpZ2h0PSI2MzguMzczOSIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjUwIi8+PC9maWx0ZXI+PHBhdGggZD0iTTkzNy43NjMgMzY1LjMwNkM5MzEuMDYgNDAzLjEgODk0Ljk4OCA0MjguMzA0IDg1Ny4xOTQgNDIxLjYwMUw1OTMuMzEyIDM3NC44MDFDNTgwLjgzIDM3Mi41ODcgNTY5LjcyMyAzNjcuMTY5IDU2MC42ODQgMzU5LjU0NUM1MzYuMzg5IDM3Mi42MTQgNTA3LjY4NCAzNzcuODk4IDQ3OC40MTIgMzcyLjcwN0wzNjMuMjEgMzUyLjI3NkMyOTQuMTQ4IDM0MC4wMjcgMjQ4LjA5MSAyNzQuMTExIDI2MC4zMzkgMjA1LjA0OUMyNzIuNTg4IDEzNS45ODcgMzM4LjUwMyA4OS45MzAxIDQwNy41NjUgMTAyLjE3OEw1MjIuNzY4IDEyMi42MTBDNTgxLjY1MyAxMzMuMDUzIDYyMy44MTQgMTgyLjUxMyA2MjcuMzY4IDIzOS42NzJMODgxLjQ2NyAyODQuNzM3QzkxOS4yNjEgMjkxLjQ0IDk0NC40NjYgMzI3LjUxMiA5MzcuNzYzIDM2NS4zMDZaIiBmaWxsPSIjZmZmIiBmaWx0ZXI9InVybCgjbCkiLz48L3N2Zz4KPC9zdmc+");
+      mask-image: url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjIwNzAiIHZpZXdCb3g9IjAgMCAxNDg0IDIwNzAiPgo8c3ZnIHk9IjAiIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjEwMzUiIHZpZXdCb3g9Ii0xMjUgLTEyNSAxNDg0IDEwMzUiPjxmaWx0ZXIgaWQ9ImIiIHg9Ii0xMjUiIHk9Ii0xMjUiIHdpZHRoPSIxNDg0IiBoZWlnaHQ9IjEwMzUiIGZpbHRlclVuaXRzPSJ1c2VyU3BhY2VPblVzZSIgY29sb3ItaW50ZXJwb2xhdGlvbi1maWx0ZXJzPSJzUkdCIj48ZmVHYXVzc2lhbkJsdXIgc3RkRGV2aWF0aW9uPSIxMjUiLz48L2ZpbHRlcj48cGF0aCBkPSJNOTg0IDM3MS41Qzk4NCA0MzguNjAzIDkyOS42MDMgNDkzIDg2Mi41IDQ5M0w3NTcuMDAxIDQ5M0M3MzcuNDQ2IDUxOC41MzQgNzA2LjY0NiA1MzUgNjcyIDUzNUw1MzAgNTM1QzQ4Mi40MjEgNTM1IDQ0Mi4wOTYgNTAzLjk0NSA0MjguMTg3IDQ2MUwzMzMgNDYxQzI4Ny4xNiA0NjEgMjUwIDQyMy44NCAyNTAgMzc4QzI1MCAzMzIuMTYgMjg3LjE2IDI5NSAzMzMgMjk1TDQzNiAyOTVDNDYxLjgwMyAyOTUgNDg0Ljg1NiAzMDYuNzc0IDUwMC4wNzkgMzI1LjI0MkM1MDkuNTc0IDMyMi40ODIgNTE5LjYxNCAzMjEgNTMwIDMyMUw1OTQuOTYzIDMyMUM2MTQuMTMzIDI3OS4xMDcgNjU2LjQxNiAyNTAgNzA1LjUgMjUwTDg2Mi41IDI1MEM5MjkuNjAzIDI1MCA5ODQgMzA0LjM5NyA5ODQgMzcxLjVaIiBmaWxsPSIjZmZmIiBmaWx0ZXI9InVybCgjYikiLz48L3N2Zz4KPHN2ZyB5PSIxMDM1IiB3aWR0aD0iMTQ4NCIgaGVpZ2h0PSIxMDM1IiB2aWV3Qm94PSItMTI1IC0xMjUgMTQ4NCAxMDM1Ij48ZmlsdGVyIGlkPSJsIiB4PSI5OC4wOTEiIHk9Ii02MC4wNjk5IiB3aWR0aD0iOTk2LjM3NSIgaGVpZ2h0PSI2MzguMzczOSIgZmlsdGVyVW5pdHM9InVzZXJTcGFjZU9uVXNlIiBjb2xvci1pbnRlcnBvbGF0aW9uLWZpbHRlcnM9InNSR0IiPjxmZUdhdXNzaWFuQmx1ciBzdGREZXZpYXRpb249IjUwIi8+PC9maWx0ZXI+PHBhdGggZD0iTTkzNy43NjMgMzY1LjMwNkM5MzEuMDYgNDAzLjEgODk0Ljk4OCA0MjguMzA0IDg1Ny4xOTQgNDIxLjYwMUw1OTMuMzEyIDM3NC44MDFDNTgwLjgzIDM3Mi41ODcgNTY5LjcyMyAzNjcuMTY5IDU2MC42ODQgMzU5LjU0NUM1MzYuMzg5IDM3Mi42MTQgNTA3LjY4NCAzNzcuODk4IDQ3OC40MTIgMzcyLjcwN0wzNjMuMjEgMzUyLjI3NkMyOTQuMTQ4IDM0MC4wMjcgMjQ4LjA5MSAyNzQuMTExIDI2MC4zMzkgMjA1LjA0OUMyNzIuNTg4IDEzNS45ODcgMzM4LjUwMyA4OS45MzAxIDQwNy41NjUgMTAyLjE3OEw1MjIuNzY4IDEyMi42MTBDNTgxLjY1MyAxMzMuMDUzIDYyMy44MTQgMTgyLjUxMyA2MjcuMzY4IDIzOS42NzJMODgxLjQ2NyAyODQuNzM3QzkxOS4yNjEgMjkxLjQ0IDk0NC40NjYgMzI3LjUxMiA5MzcuNzYzIDM2NS4zMDZaIiBmaWxsPSIjZmZmIiBmaWx0ZXI9InVybCgjbCkiLz48L3N2Zz4KPC9zdmc+");
+      -webkit-mask-size: 100% 200%;
+      mask-size: 100% 200%;
+      -webkit-mask-position: 0 100%;
+      mask-position: 0 100%;
+      -webkit-mask-repeat: no-repeat;
+      mask-repeat: no-repeat;
+      pointer-events: none;
+      background: var(--bard-color-lm-glow-bloom);
+      opacity: 0.5;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .ambient-glow-backdrop,
+      .ambient-glow-layer {
+        transition: none;
+      }
+    }
+
+    /* =========================================================================
+       Core Layout & Responsive Container
+       ========================================================================= */
+    .main-container {
+      position: relative;
+      width: 100%;
+      max-width: 660px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .lower-content {
+      display: contents;
+    }
+
+    /* 1. Greeting Wrapper & Sparkle */
+    .greeting-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      order: 1;
+      margin-bottom: 28px;
+    }
+
+    .greeting-sparkle {
+      display: none;
+    }
+
+    .greeting {
+      font-size: clamp(26px, 4vw, 32px);
+      font-weight: 400;
+      letter-spacing: -0.02em;
+      line-height: 1.25;
+      color: var(--text-primary);
+      text-align: center;
+      margin: 0;
+      user-select: none;
+    }
+
+    /* 2. Prompt Bar Wrapper */
+    .prompt-anchor {
+      position: relative;
+      width: 100%;
+      max-width: 660px;
+      z-index: 30;
+      order: 2;
+    }
+
+    .prompt-bar {
+      width: 100%;
+      min-height: 56px;
+      border-radius: var(--gem-sys-shape--corner-extra-large-increased);
+      background-color: var(--bg-input);
+      border: 1px solid transparent;
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      gap: 6px;
+      box-shadow: 0 2px 8px -2px rgba(0, 0, 0, 0.16);
+      transition: background-color 150ms ease, box-shadow 150ms ease, border-color 150ms ease;
+    }
+
+    .prompt-bar:focus-within {
+      background-color: #1e1f20;
+      border-color: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.32);
+    }
+
+    .icon-circle-btn {
+      width: 38px;
+      height: 38px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .icon-circle-btn:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+      color: var(--text-primary);
+    }
+
+    .icon-circle-btn.is-open {
+      color: var(--text-primary);
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .plus-to-close {
+      transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+      transform-origin: center;
+    }
+
+    .icon-circle-btn.is-open .plus-to-close {
+      transform: rotate(45deg);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .plus-to-close { transition: none; }
+    }
+
+    .icon-circle-btn.is-listening {
+      color: #60A5FA;
+      background-color: rgba(59, 130, 246, 0.16);
+      box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.25);
+    }
+
+    /* Active Tool Chip inside Prompt Bar (Music, Image, Video, etc.) */
+    .active-tool-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 32px;
+      padding: 0 6px 0 12px;
+      margin-right: 4px;
+      border-radius: 9999px;
+      background-color: #383B40;
+      color: #E8EAED;
+      font-family: 'Google Sans', 'Google Sans Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 1;
+      white-space: nowrap;
+      flex-shrink: 0;
+      box-sizing: border-box;
+      animation: chipEnter 150ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes chipEnter {
+      from {
+        opacity: 0;
+        transform: scale(0.92);
+      }
+      to {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+
+    .active-tool-chip svg {
+      color: #E8EAED;
+      flex-shrink: 0;
+    }
+
+    .active-tool-clear {
+      width: 18px;
+      height: 18px;
+      border-radius: 9999px;
+      background-color: #ffffff;
+      color: #000000;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      padding: 0;
+      margin-left: 2px;
+      flex-shrink: 0;
+      transition: transform 120ms ease, opacity 120ms ease;
+    }
+
+    .active-tool-clear:hover {
+      transform: scale(1.08);
+      opacity: 0.92;
+    }
+
+    .active-tool-clear svg {
+      color: #000000 !important;
+      stroke: #000000 !important;
+      stroke-width: 2.8 !important;
+      width: 10px;
+      height: 10px;
+    }
+
+    .prompt-input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      background: transparent;
+      border: none;
+      outline: none;
+      font-family: 'Google Sans Flex', 'Google Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      font-size: 16px;
+      line-height: 24px;
+      font-weight: 400;
+      color: var(--text-primary);
+      padding: 0 8px;
+    }
+
+    .prompt-input::placeholder {
+      color: #8e918f;
+      font-size: 16px;
+    }
+
+    .prompt-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .model-trigger {
+      height: 36px;
+      padding: 0 13px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+      background-color: transparent;
+      border: 1px solid transparent;
+      transition: background-color 150ms ease, border-color 150ms ease;
+      white-space: nowrap;
+    }
+
+    .model-trigger:hover,
+    .model-trigger.is-open {
+      background-color: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .model-trigger-level {
+      color: var(--text-secondary);
+      font-weight: 400;
+    }
+
+    .model-trigger .chevron {
+      color: var(--text-secondary);
+      margin-left: 1px;
+      transition: transform 200ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .model-trigger.is-open .chevron {
+      transform: rotate(180deg);
+    }
+
+    .coming-soon-ring {
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+
+    /* Prompt Bar Hover Tooltips */
+    .tooltip-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .bar-tooltip {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 50%;
+      transform: translateX(-50%) translateY(-2px);
+      padding: 8px 14px;
+      border-radius: 9999px;
+      background-color: #E3E5E8;
+      color: #1A1C20;
+      font-size: 12.5px;
+      font-weight: 500;
+      line-height: 1;
+      letter-spacing: -0.005em;
+      white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.42);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 120ms ease, transform 120ms ease;
+      z-index: 48;
+    }
+
+    .bar-tooltip.is-right-aligned {
+      left: auto;
+      right: -4px;
+      transform: translateY(-2px);
+    }
+
+    .tooltip-wrap:hover .bar-tooltip,
+    .tooltip-wrap:focus-within .bar-tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .tooltip-wrap:hover .bar-tooltip.is-right-aligned,
+    .tooltip-wrap:focus-within .bar-tooltip.is-right-aligned {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Dismiss hover tooltips immediately when clicked or active */
+    .tooltip-wrap:active .bar-tooltip,
+    .tooltip-wrap:has(:active) .bar-tooltip,
+    .tooltip-wrap.is-suppressed .bar-tooltip,
+    .model-trigger.is-open + .bar-tooltip,
+    .model-trigger.is-open ~ .bar-tooltip {
+      display: none !important;
+      opacity: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+
+    /* 3. Mode Switcher (Chat / Task Segmented Control) */
+    .segmented-control {
+      margin-top: 16px;
+      display: inline-flex;
+      position: relative;
+      border-radius: 9999px;
+      padding: 1.5px;
+      background: transparent;
+      isolation: isolate;
+      order: 3;
+    }
+
+    .segmented-slider {
+      position: absolute;
+      top: 1.5px;
+      bottom: 1.5px;
+      left: 1.5px;
+      width: calc(50% - 1.5px);
+      border-radius: 9999px;
+      background-color: #333537;
+      box-shadow: 0 0 0 1px hsla(0, 0%, 100%, 0.12);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .segmented-control.is-chat .segmented-slider {
+      transform: translateX(0);
+    }
+
+    .segmented-control.is-task .segmented-slider {
+      transform: translateX(100%);
+    }
+
+    .segment-btn {
+      position: relative;
+      z-index: 1;
+      height: 28px;
+      padding: 0 12px;
+      border-radius: 9999px;
+      font-family: 'Google Sans', sans-serif;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: #c4c7c5;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: color 200ms ease;
+    }
+
+    .segment-btn:hover:not(.is-active) {
+      color: #e3e3e3;
+    }
+
+    .segment-btn.is-active {
+      color: #ffffff;
+    }
+
+    /* 4. Suggested Prompts */
+    .suggested-list {
+      width: 100%;
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      order: 4;
+    }
+
+    .suggested-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: none;
+      background: transparent;
+      color: var(--text-primary);
+      font-family: 'Google Sans', sans-serif;
+      font-size: 14.5px;
+      font-weight: 400;
+      text-align: left;
+      cursor: pointer;
+      transition: background-color 150ms ease;
+    }
+
+    .suggested-item svg {
+      flex-shrink: 0;
+      color: var(--text-secondary);
+    }
+
+    .suggested-item:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    /* 5. Periodic Table Floating Panel */
+    .periodic-panel {
+      position: absolute;
+      top: calc(100% + 12px);
+      left: 50%;
+      transform: translateX(-50%);
+      width: 940px;
+      max-width: calc(100vw - 24px);
+      background-color: var(--bg-panel);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      padding: 16px 20px 18px;
+      box-shadow:
+        0 28px 80px rgba(0, 0, 0, 0.72),
+        0 0 0 1px rgba(255, 255, 255, 0.04);
+      z-index: 40;
+      overflow: visible;
+      animation: panelEnter 190ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes panelEnter {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-6px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0) scale(1);
+      }
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .panel-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .panel-sparkle {
+      color: #D2E3FC;
+    }
+
+    .panel-close-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+      transition: background-color 150ms ease, color 150ms ease;
+    }
+
+    .panel-close-btn:hover {
+      background-color: rgba(255, 255, 255, 0.09);
+      color: var(--text-primary);
+    }
+
+    /* Periodic Grid */
+    .periodic-grid-scroll {
+      width: 100%;
+    }
+
+    .periodic-grid {
+      display: grid;
+      /* Col 1 for period numbers, Cols 2..19 for Groups 1..18 */
+      grid-template-columns: 18px repeat(18, minmax(0, 1fr));
+      /* Row 1: group numbers, Rows 2..8: periods 1..7, Row 9: spacer, Rows 10..11: La/Ac */
+      grid-template-rows: 16px repeat(7, minmax(0, 1fr)) 10px repeat(2, minmax(0, 1fr));
+      gap: 4px;
+      align-items: stretch;
+      user-select: none;
+    }
+
+    .group-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: #7C828A;
+      line-height: 1;
+    }
+
+    .period-label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 500;
+      color: #7C828A;
+      line-height: 1;
+    }
+
+    .dot-ring {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      border: 1.5px solid currentColor;
+      box-sizing: border-box;
+      flex-shrink: 0;
+    }
+
+    /* Lanthanide / actinide row labels */
+    .series-label {
+      grid-column: 2 / 5;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: default;
+      transition: color 140ms ease;
+    }
+
+    .series-label:hover {
+      color: var(--text-secondary);
+    }
+
+    /* Element Cells */
+    .el-cell {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      border-radius: 6px;
+      padding: 3px 4px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      background-color: var(--bg-cell-default);
+      border: 1px solid rgba(255, 255, 255, 0.075);
+      transition:
+        border-color 120ms ease,
+        background-color 120ms ease,
+        transform 120ms ease,
+        box-shadow 120ms ease;
+      text-align: left;
+    }
+
+    .el-cell:focus-visible {
+      outline: 2px solid #FFFFFF;
+      outline-offset: 1px;
+    }
+
+    .el-cell .el-num {
+      font-size: 9.5px;
+      line-height: 1;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.58);
+    }
+
+    .el-cell .el-sym {
+      font-size: 16px;
+      line-height: 1.1;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      color: rgba(255, 255, 255, 0.86);
+      text-align: center;
+      align-self: center;
+      margin-bottom: 1px;
+    }
+
+    .el-cell.is-dimmed {
+      opacity: 0.22;
+    }
+
+    .el-cell.is-match {
+      border-color: rgba(255, 255, 255, 0.7);
+    }
+
+    .panel-search {
+      flex: 0 1 220px;
+      margin: 0 10px 0 auto;
+      height: 28px;
+      border-radius: 9999px;
+      padding: 0 12px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 12.5px;
+      outline: none;
+    }
+
+    .panel-search:focus {
+      border-color: rgba(255, 255, 255, 0.3);
+    }
+
+    .panel-search::placeholder {
+      color: var(--text-muted);
+    }
+
+    .el-cell.is-coming-soon:hover,
+    .el-cell.is-coming-soon.is-hovered {
+      border-color: rgba(255, 255, 255, 0.85);
+      background-color: #272A30;
+      transform: translateY(-1px);
+      z-index: 2;
+    }
+
+    .el-cell.is-coming-soon:hover .el-num,
+    .el-cell.is-coming-soon.is-hovered .el-num,
+    .el-cell.is-coming-soon.is-selected .el-num {
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .el-cell.is-coming-soon:hover .el-sym,
+    .el-cell.is-coming-soon.is-hovered .el-sym,
+    .el-cell.is-coming-soon.is-selected .el-sym {
+      color: #FFFFFF;
+    }
+
+    .el-cell.is-coming-soon.is-selected {
+      border-color: #FFFFFF;
+      background-color: #2B2E36;
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+    }
+
+    .el-cell.is-series-highlight {
+      border-color: rgba(255, 255, 255, 0.35);
+      background-color: #252830;
+    }
+
+    /* Released Elements (H, C, Ar) */
+    .el-cell.is-released .el-num {
+      color: rgba(255, 255, 255, 0.78);
+    }
+
+    .el-cell.is-released .el-sym {
+      color: #FFFFFF;
+    }
+
+    .el-cell.is-released:hover,
+    .el-cell.is-released.is-hovered {
+      transform: translateY(-1px);
+      z-index: 2;
+    }
+
+    /* Range Placeholders (57-71, 89-103) */
+    .el-range-marker {
+      aspect-ratio: 1 / 1;
+      border-radius: 6px;
+      border: 1px dashed rgba(255, 255, 255, 0.14);
+      background-color: rgba(255, 255, 255, 0.02);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 500;
+      color: #80868E;
+      letter-spacing: -0.02em;
+      cursor: default;
+      transition: border-color 140ms ease, color 140ms ease;
+    }
+
+    .el-range-marker:hover {
+      border-color: rgba(255, 255, 255, 0.32);
+      color: var(--text-secondary);
+    }
+
+    /* Footer: currently selected model */
+    .panel-footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 14px;
+    }
+
+    .footer-model {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .footer-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .footer-meta {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+    }
+
+    /* Hover popover = light preview (no interaction); click popover = full card */
+    .element-popover {
+      transition: border-color 220ms ease, box-shadow 220ms ease;
+    }
+
+    .element-popover.is-preview {
+      pointer-events: none;
+    }
+
+    .element-popover.is-pinned {
+      border-color: rgba(255, 255, 255, 0.28);
+      box-shadow:
+        0 22px 52px rgba(0, 0, 0, 0.78),
+        0 0 0 1px rgba(255, 255, 255, 0.06);
+    }
+
+    /* Thinking level expands smoothly when a hover preview becomes a clicked card */
+    .thinking-wrap {
+      display: grid;
+      grid-template-rows: 0fr;
+      opacity: 0;
+      visibility: hidden;
+      transition:
+        grid-template-rows 240ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 180ms ease,
+        visibility 0s linear 240ms;
+    }
+
+    .is-pinned .thinking-wrap {
+      grid-template-rows: 1fr;
+      opacity: 1;
+      visibility: inherit;
+      transition:
+        grid-template-rows 260ms cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 220ms ease 40ms,
+        visibility 0s;
+    }
+
+    .thinking-clip {
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    /* Element Hover / Detail Popover Card */
+    .element-popover {
+      position: absolute;
+      z-index: 60;
+      border-radius: 12px;
+      background-color: #1B1D24;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow:
+        0 18px 42px rgba(0, 0, 0, 0.72),
+        0 0 0 1px rgba(255, 255, 255, 0.04);
+      padding: 12px;
+      animation: popoverFade 130ms cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto;
+    }
+
+    /* Invisible bridge below card so cursor can glide from cell to card */
+    .element-popover::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: 100%;
+      height: 12px;
+    }
+
+    .element-popover.is-below::after {
+      top: auto;
+      bottom: 100%;
+    }
+
+    .element-popover.is-below .popover-caret {
+      bottom: auto;
+      top: -5px;
+      transform: translateX(-50%) rotate(225deg);
+    }
+
+    @keyframes popoverFade {
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .popover-caret {
+      position: absolute;
+      bottom: -5px;
+      width: 9px;
+      height: 9px;
+      background-color: #1B1D24;
+      border-right: 1px solid rgba(255, 255, 255, 0.14);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+      transform: translateX(-50%) rotate(45deg);
+      pointer-events: none;
+    }
+
+    .popover-released {
+      width: 262px;
+    }
+
+    .popover-coming-soon {
+      width: 262px;
+      padding: 12px;
+    }
+
+    .popover-head {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .popover-tile {
+      width: 40px;
+      height: 40px;
+      border-radius: 7px;
+      padding: 4px 5px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background-color: #23262D;
+    }
+
+    .popover-tile-num {
+      font-size: 9px;
+      line-height: 1;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.72);
+    }
+
+    .popover-tile-sym {
+      font-size: 14px;
+      line-height: 1;
+      font-weight: 600;
+      color: #FFFFFF;
+      text-align: center;
+      margin-bottom: 1px;
+    }
+
+    .popover-meta {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .popover-title {
+      font-size: 14.5px;
+      font-weight: 600;
+      color: var(--text-primary);
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+
+    .popover-subtitle {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.25;
+      white-space: nowrap;
+    }
+
+    .thinking-section {
+      margin-top: 11px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .thinking-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 7px;
+    }
+
+    /* Segmented control: one pill-shaped track holding the three options */
+    .thinking-pills {
+      position: relative;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 2px;
+      padding: 3px;
+      border-radius: 9999px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Sliding highlight: each step = one option width + the 2px gap */
+    .thinking-indicator {
+      position: absolute;
+      top: 3px;
+      bottom: 3px;
+      left: 3px;
+      width: calc((100% - 6px - 4px) / 3);
+      border-radius: 9999px;
+      border: 1px solid transparent;
+      transform: translateX(calc(var(--idx, 0) * (100% + 2px)));
+      transition:
+        transform 260ms cubic-bezier(0.16, 1, 0.3, 1),
+        background-color 200ms ease,
+        border-color 200ms ease,
+        box-shadow 200ms ease;
+      pointer-events: none;
+    }
+
+    .thinking-pill {
+      position: relative;
+      z-index: 1;
+      height: 27px;
+      border-radius: 9999px;
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      background-color: transparent;
+      border: 1px solid transparent;
+      transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease;
+    }
+
+    .thinking-pill:hover:not(.is-active) {
+      background-color: rgba(255, 255, 255, 0.07);
+      color: #FFFFFF;
+    }
+
+    .thinking-pill.is-active {
+      color: #FFFFFF;
+      font-weight: 600;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .thinking-indicator { transition: none; }
+    }
+
+    /* Subtle Prototype Feedback Toast */
+    .prototype-toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 9px 16px;
+      border-radius: 9999px;
+      background-color: rgba(26, 28, 34, 0.94);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+      color: var(--text-primary);
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 80;
+      animation: toastSlideUp 180ms cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      white-space: nowrap;
+      max-width: calc(100vw - 32px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    @keyframes toastSlideUp {
+      from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+      }
+    }
+
+    /* Responsive adjustments for smaller viewports */
+    @media (max-width: 780px) {
+      .periodic-panel {
+        padding: 14px 14px 16px;
+      }
+
+      .periodic-grid-scroll {
+        overflow-x: auto;
+        padding-bottom: 4px;
+      }
+
+      .periodic-grid {
+        min-width: 680px;
+      }
+    }
+
+    /* Phones: title + close stay on one line, search drops to a full-width second row */
+    @media (max-width: 600px) {
+      .panel-header {
+        flex-wrap: wrap;
+        row-gap: 10px;
+      }
+
+      .panel-title-group {
+        white-space: nowrap;
+      }
+
+      .panel-close-btn {
+        margin-left: auto;
+      }
+
+      .panel-search {
+        order: 3;
+        flex: 1 0 100%;
+        margin: 0;
+        height: 34px;
+      }
+    }
+
+    /* Left Action Popover Menu */
+    .left-menu {
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 0;
+      width: 274px;
+      max-width: calc(100vw - 32px);
+      background-color: #1B1D22;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      padding: 8px;
+      box-shadow: none !important;
+      z-index: 45;
+      animation: menuEnter 160ms cubic-bezier(0.16, 1, 0.3, 1);
+      user-select: none;
+      overflow: visible;
+    }
+
+    @keyframes menuEnter {
+      from {
+        opacity: 0;
+        transform: translateY(-6px) scale(0.985);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .left-menu-item {
+      width: 100%;
+      min-height: 40px;
+      padding: 8px 12px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      text-align: left;
+      font-size: 13.5px;
+      font-weight: 400;
+      color: #E8EAED;
+      transition: background-color 140ms ease, color 140ms ease;
+    }
+
+    .left-menu-item:hover {
+      background-color: rgba(255, 255, 255, 0.07);
+      color: #FFFFFF;
+    }
+
+    .left-menu-item.is-active {
+      background-color: rgba(168, 199, 250, 0.12);
+      color: #D2E3FC;
+    }
+
+    .left-menu-item svg {
+      color: #E8EAED;
+      flex-shrink: 0;
+    }
+
+    .left-menu-item.is-active svg {
+      color: #A8C7FA;
+    }
+
+    .left-menu-label {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .left-menu-sub {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.2;
+    }
+
+    .left-menu-chevron {
+      color: var(--text-secondary) !important;
+      margin-left: auto;
+      transition: transform 180ms ease;
+    }
+
+    .left-menu-chevron.is-open {
+      transform: rotate(90deg);
+    }
+
+    .left-menu-divider {
+      height: 1px;
+      background-color: rgba(255, 255, 255, 0.09);
+      margin: 6px 8px;
+    }
+
+    .more-uploads-wrap {
+      position: relative;
+    }
+
+    .left-submenu {
+      position: absolute;
+      top: -6px;
+      left: 100%;
+      margin-left: 4px;
+      width: 204px;
+      background-color: #1E2026;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 14px;
+      padding: 6px;
+      box-shadow: none !important;
+      z-index: 55;
+      animation: menuEnter 130ms cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* Invisible hover bridge between left-menu and left-submenu */
+    .left-submenu::before {
+      content: '';
+      position: absolute;
+      top: -10px;
+      bottom: -10px;
+      left: -12px;
+      width: 14px;
+    }
+
+    /* Top Header Bar (Split-Screen / Mobile only) */
+    .top-header {
+      display: none;
+    }
+
+    .top-header-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: transparent;
+      border: none;
+      color: #E8EAED;
+      cursor: pointer;
+      transition: background-color 150ms ease;
+    }
+
+    .top-header-btn:hover {
+      background-color: rgba(255, 255, 255, 0.08);
+    }
+
+    /* Material-style Pill Switch */
+    .labs-switch {
+      position: relative;
+      width: 42px;
+      height: 24px;
+      border-radius: 9999px;
+      background-color: #33363D;
+      border: 1.5px solid #8E918F;
+      flex-shrink: 0;
+      transition: background-color 180ms ease, border-color 180ms ease;
+    }
+
+    .labs-switch.is-on {
+      background-color: #A8C7FA;
+      border-color: #A8C7FA;
+    }
+
+    .labs-switch-thumb {
+      position: absolute;
+      top: 50%;
+      left: 3px;
+      width: 14px;
+      height: 14px;
+      border-radius: 9999px;
+      background-color: #8E918F;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #D3E3FD;
+      transition:
+        transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+        width 180ms ease,
+        height 180ms ease,
+        background-color 180ms ease;
+    }
+
+    .labs-switch.is-on .labs-switch-thumb {
+      width: 18px;
+      height: 18px;
+      background-color: #062E6F;
+      transform: translate(17px, -50%);
+    }
+      /* =========================================================================
+       Narrow Screen / Split-Screen Responsive Layout ("输入框下沉" & Sunk Glow)
+       Threshold: <= 980px (triggers reliably on laptop side-by-side split screens)
+       Placed at the end of stylesheet to guarantee cascade precedence.
+       ========================================================================= */
+    @media screen and (max-width: 980px) {
+      .stage {
+        min-height: 100vh;
+        min-height: 100dvh;
+        height: 100%;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+        background-color: #000000;
+      }
+
+      .top-header {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        width: 100%;
+        height: 52px;
+        padding: 8px 16px 0;
+        box-sizing: border-box;
+        position: relative;
+        z-index: 40;
+        flex-shrink: 0;
+      }
+
+      .top-header-left {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      /* Half-screen model trigger hover: no border/contour */
+      .top-header .model-trigger {
+        border: none !important;
+        outline: none !important;
+      }
+
+      .top-header .model-trigger:hover,
+      .top-header .model-trigger.is-open {
+        background-color: rgba(255, 255, 255, 0.08) !important;
+        border: none !important;
+        border-color: transparent !important;
+        outline: none !important;
+        box-shadow: none !important;
+      }
+
+      .main-container {
+        min-height: calc(100vh - 52px);
+        min-height: calc(100dvh - 52px);
+        height: calc(100% - 52px);
+        padding: 0 20px 20px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        max-width: 100%;
+        box-sizing: border-box;
+        margin: 0 auto;
+      }
+
+      /* In split-screen mode, hide the model trigger inside the prompt bar */
+      .prompt-right .model-trigger-wrap {
+        display: none !important;
+      }
+
+      /* 1. Sparkle + Greeting vertically centered in upper area matching Image 2 */
+      .greeting-wrap {
+        order: 1;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding-top: 36px;
+        padding-bottom: 28px;
+        margin-bottom: 0;
+      }
+
+      .greeting-sparkle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        margin-bottom: 20px;
+      }
+
+      .greeting {
+        margin: 0;
+        font-family: 'Google Sans', 'Google Sans Flex', -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: clamp(28px, 3.6vw, 33px);
+        font-weight: 400;
+        letter-spacing: -0.015em;
+        line-height: 1.25;
+        color: #ffffff;
+        text-align: center;
+      }
+
+      /* 2. Suggested Prompts anchored in the lower area right above the Chat/Task pill */
+      .suggested-list {
+        order: 2;
+        margin-top: auto;
+        margin-bottom: 22px;
+        flex: 0 0 auto;
+        width: 100%;
+        max-width: 775px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        padding: 0;
+      }
+
+      .suggested-item {
+        padding: 9px 12px;
+        border-radius: 12px;
+        font-size: 15px;
+        line-height: 1.4;
+        gap: 16px;
+      }
+
+      .suggested-item svg {
+        width: 20px;
+        height: 20px;
+        flex-shrink: 0;
+      }
+
+      /* 3. Segmented control sits directly adjacent / above the sunk prompt bar */
+      .segmented-control {
+        order: 3;
+        margin-top: 0;
+        margin-bottom: 18px;
+        align-self: center;
+      }
+
+      /* 4. Prompt bar sinks to the bottom matching Image 2's width and presence */
+      .prompt-anchor {
+        order: 4;
+        position: sticky;
+        bottom: 20px;
+        width: 100%;
+        max-width: 775px;
+        margin-top: 0;
+        z-index: 30;
+      }
+
+      .prompt-bar {
+        min-height: 60px;
+        border-radius: 32px;
+        padding: 0 16px;
+        background-color: var(--bg-input);
+        border: none;
+        box-shadow: 0 0 20px 0 rgba(227, 227, 227, 0.04);
+      }
+
+      /* Restrained ambient glow matching Google 半屏.html (upper 60% pure black) */
+      .ambient-glow-layer {
+        position: fixed;
+        top: auto;
+        bottom: -445.7px;
+        left: calc(50% + 45px);
+        width: 1484px;
+        max-width: none;
+        transform: translateX(-50%);
+      }
+
+      .ambient-glow:after {
+        position: fixed;
+        top: auto;
+        bottom: -412.3px;
+        left: calc(50% - 26.1px);
+        width: 1484px;
+        max-width: none;
+        transform: translateX(-50%) rotate(15.37deg);
+        opacity: 0.32;
+      }
+
+      .ambient-backdrop-chat {
+        background: radial-gradient(
+          ellipse 80vw 35vh at 60% 100%,
+          rgba(24, 46, 128, 0.38) 0%,
+          rgba(14, 28, 85, 0.20) 40%,
+          rgba(6, 12, 38, 0.06) 65%,
+          transparent 100%
+        ) !important;
+      }
+
+      .ambient-backdrop-task {
+        background: radial-gradient(
+          ellipse 80vw 35vh at 56% 100%,
+          rgba(42, 38, 138, 0.40) 0%,
+          rgba(24, 20, 88, 0.22) 40%,
+          rgba(10, 8, 42, 0.06) 65%,
+          transparent 100%
+        ) !important;
+      }
+
+      /* In half-screen mode, popup menu style is identical to full-screen: opens right, no shadow */
+      .left-menu {
+        top: auto !important;
+        bottom: calc(100% + 12px) !important;
+        transform-origin: bottom left !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+      }
+
+      .left-submenu {
+        position: absolute !important;
+        top: auto !important;
+        bottom: 0 !important;
+        left: 100% !important;
+        margin-left: 4px !important;
+        width: 204px !important;
+        background-color: #1E2026 !important;
+        border: 1px solid rgba(255, 255, 255, 0.12) !important;
+        border-radius: 14px !important;
+        padding: 6px !important;
+        box-shadow: none !important;
+      }
+
+      .left-submenu .left-menu-item {
+        padding: 8px 12px !important;
+        font-size: 13.5px !important;
+        border-radius: 10px !important;
+      }
+
+      .periodic-panel {
+        position: fixed !important;
+        top: 56px !important;
+        bottom: auto !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        transform-origin: top center !important;
+        width: 940px !important;
+        max-width: calc(100vw - 20px) !important;
+        max-height: calc(100vh - 72px) !important;
+        overflow-y: auto !important;
+        z-index: 50 !important;
+      }
+
+      .prompt-anchor .bar-tooltip {
+        top: auto !important;
+        bottom: calc(100% + 10px) !important;
+      }
+
+      .top-header .bar-tooltip {
+        top: calc(100% + 10px) !important;
+        bottom: auto !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useRef, useEffect, useLayoutEffect, useCallback } = React;
+
+    // -------------------------------------------------------------------------
+    // 1. Static Periodic Table Dictionary (118 Elements)
+    //    row: 1-7 main periods, 9 Lanthanides (57-71), 10 Actinides (89-103)
+    // -------------------------------------------------------------------------
+    const ELEMENTS = [
+      // Period 1
+      { number: 1, symbol: 'H', name: 'Hydrogen', row: 1, col: 1 },
+      { number: 2, symbol: 'He', name: 'Helium', row: 1, col: 18 },
+      // Period 2
+      { number: 3, symbol: 'Li', name: 'Lithium', row: 2, col: 1 },
+      { number: 4, symbol: 'Be', name: 'Beryllium', row: 2, col: 2 },
+      { number: 5, symbol: 'B', name: 'Boron', row: 2, col: 13 },
+      { number: 6, symbol: 'C', name: 'Carbon', row: 2, col: 14 },
+      { number: 7, symbol: 'N', name: 'Nitrogen', row: 2, col: 15 },
+      { number: 8, symbol: 'O', name: 'Oxygen', row: 2, col: 16 },
+      { number: 9, symbol: 'F', name: 'Fluorine', row: 2, col: 17 },
+      { number: 10, symbol: 'Ne', name: 'Neon', row: 2, col: 18 },
+      // Period 3
+      { number: 11, symbol: 'Na', name: 'Sodium', row: 3, col: 1 },
+      { number: 12, symbol: 'Mg', name: 'Magnesium', row: 3, col: 2 },
+      { number: 13, symbol: 'Al', name: 'Aluminum', row: 3, col: 13 },
+      { number: 14, symbol: 'Si', name: 'Silicon', row: 3, col: 14 },
+      { number: 15, symbol: 'P', name: 'Phosphorus', row: 3, col: 15 },
+      { number: 16, symbol: 'S', name: 'Sulfur', row: 3, col: 16 },
+      { number: 17, symbol: 'Cl', name: 'Chlorine', row: 3, col: 17 },
+      { number: 18, symbol: 'Ar', name: 'Argon', row: 3, col: 18 },
+      // Period 4
+      { number: 19, symbol: 'K', name: 'Potassium', row: 4, col: 1 },
+      { number: 20, symbol: 'Ca', name: 'Calcium', row: 4, col: 2 },
+      { number: 21, symbol: 'Sc', name: 'Scandium', row: 4, col: 3 },
+      { number: 22, symbol: 'Ti', name: 'Titanium', row: 4, col: 4 },
+      { number: 23, symbol: 'V', name: 'Vanadium', row: 4, col: 5 },
+      { number: 24, symbol: 'Cr', name: 'Chromium', row: 4, col: 6 },
+      { number: 25, symbol: 'Mn', name: 'Manganese', row: 4, col: 7 },
+      { number: 26, symbol: 'Fe', name: 'Iron', row: 4, col: 8 },
+      { number: 27, symbol: 'Co', name: 'Cobalt', row: 4, col: 9 },
+      { number: 28, symbol: 'Ni', name: 'Nickel', row: 4, col: 10 },
+      { number: 29, symbol: 'Cu', name: 'Copper', row: 4, col: 11 },
+      { number: 30, symbol: 'Zn', name: 'Zinc', row: 4, col: 12 },
+      { number: 31, symbol: 'Ga', name: 'Gallium', row: 4, col: 13 },
+      { number: 32, symbol: 'Ge', name: 'Germanium', row: 4, col: 14 },
+      { number: 33, symbol: 'As', name: 'Arsenic', row: 4, col: 15 },
+      { number: 34, symbol: 'Se', name: 'Selenium', row: 4, col: 16 },
+      { number: 35, symbol: 'Br', name: 'Bromine', row: 4, col: 17 },
+      { number: 36, symbol: 'Kr', name: 'Krypton', row: 4, col: 18 },
+      // Period 5
+      { number: 37, symbol: 'Rb', name: 'Rubidium', row: 5, col: 1 },
+      { number: 38, symbol: 'Sr', name: 'Strontium', row: 5, col: 2 },
+      { number: 39, symbol: 'Y', name: 'Yttrium', row: 5, col: 3 },
+      { number: 40, symbol: 'Zr', name: 'Zirconium', row: 5, col: 4 },
+      { number: 41, symbol: 'Nb', name: 'Niobium', row: 5, col: 5 },
+      { number: 42, symbol: 'Mo', name: 'Molybdenum', row: 5, col: 6 },
+      { number: 43, symbol: 'Tc', name: 'Technetium', row: 5, col: 7 },
+      { number: 44, symbol: 'Ru', name: 'Ruthenium', row: 5, col: 8 },
+      { number: 45, symbol: 'Rh', name: 'Rhodium', row: 5, col: 9 },
+      { number: 46, symbol: 'Pd', name: 'Palladium', row: 5, col: 10 },
+      { number: 47, symbol: 'Ag', name: 'Silver', row: 5, col: 11 },
+      { number: 48, symbol: 'Cd', name: 'Cadmium', row: 5, col: 12 },
+      { number: 49, symbol: 'In', name: 'Indium', row: 5, col: 13 },
+      { number: 50, symbol: 'Sn', name: 'Tin', row: 5, col: 14 },
+      { number: 51, symbol: 'Sb', name: 'Antimony', row: 5, col: 15 },
+      { number: 52, symbol: 'Te', name: 'Tellurium', row: 5, col: 16 },
+      { number: 53, symbol: 'I', name: 'Iodine', row: 5, col: 17 },
+      { number: 54, symbol: 'Xe', name: 'Xenon', row: 5, col: 18 },
+      // Period 6 (57-71 placeholder at row 6, col 3)
+      { number: 55, symbol: 'Cs', name: 'Cesium', row: 6, col: 1 },
+      { number: 56, symbol: 'Ba', name: 'Barium', row: 6, col: 2 },
+      { number: 72, symbol: 'Hf', name: 'Hafnium', row: 6, col: 4 },
+      { number: 73, symbol: 'Ta', name: 'Tantalum', row: 6, col: 5 },
+      { number: 74, symbol: 'W', name: 'Tungsten', row: 6, col: 6 },
+      { number: 75, symbol: 'Re', name: 'Rhenium', row: 6, col: 7 },
+      { number: 76, symbol: 'Os', name: 'Osmium', row: 6, col: 8 },
+      { number: 77, symbol: 'Ir', name: 'Iridium', row: 6, col: 9 },
+      { number: 78, symbol: 'Pt', name: 'Platinum', row: 6, col: 10 },
+      { number: 79, symbol: 'Au', name: 'Gold', row: 6, col: 11 },
+      { number: 80, symbol: 'Hg', name: 'Mercury', row: 6, col: 12 },
+      { number: 81, symbol: 'Tl', name: 'Thallium', row: 6, col: 13 },
+      { number: 82, symbol: 'Pb', name: 'Lead', row: 6, col: 14 },
+      { number: 83, symbol: 'Bi', name: 'Bismuth', row: 6, col: 15 },
+      { number: 84, symbol: 'Po', name: 'Polonium', row: 6, col: 16 },
+      { number: 85, symbol: 'At', name: 'Astatine', row: 6, col: 17 },
+      { number: 86, symbol: 'Rn', name: 'Radon', row: 6, col: 18 },
+      // Period 7 (89-103 placeholder at row 7, col 3)
+      { number: 87, symbol: 'Fr', name: 'Francium', row: 7, col: 1 },
+      { number: 88, symbol: 'Ra', name: 'Radium', row: 7, col: 2 },
+      { number: 104, symbol: 'Rf', name: 'Rutherfordium', row: 7, col: 4 },
+      { number: 105, symbol: 'Db', name: 'Dubnium', row: 7, col: 5 },
+      { number: 106, symbol: 'Sg', name: 'Seaborgium', row: 7, col: 6 },
+      { number: 107, symbol: 'Bh', name: 'Bohrium', row: 7, col: 7 },
+      { number: 108, symbol: 'Hs', name: 'Hassium', row: 7, col: 8 },
+      { number: 109, symbol: 'Mt', name: 'Meitnerium', row: 7, col: 9 },
+      { number: 110, symbol: 'Ds', name: 'Darmstadtium', row: 7, col: 10 },
+      { number: 111, symbol: 'Rg', name: 'Roentgenium', row: 7, col: 11 },
+      { number: 112, symbol: 'Cn', name: 'Copernicium', row: 7, col: 12 },
+      { number: 113, symbol: 'Nh', name: 'Nihonium', row: 7, col: 13 },
+      { number: 114, symbol: 'Fl', name: 'Flerovium', row: 7, col: 14 },
+      { number: 115, symbol: 'Mc', name: 'Moscovium', row: 7, col: 15 },
+      { number: 116, symbol: 'Lv', name: 'Livermorium', row: 7, col: 16 },
+      { number: 117, symbol: 'Ts', name: 'Tennessine', row: 7, col: 17 },
+      { number: 118, symbol: 'Og', name: 'Oganesson', row: 7, col: 18 },
+      // Lanthanides (row 9, cols 4-18)
+      { number: 57, symbol: 'La', name: 'Lanthanum', row: 9, col: 4 },
+      { number: 58, symbol: 'Ce', name: 'Cerium', row: 9, col: 5 },
+      { number: 59, symbol: 'Pr', name: 'Praseodymium', row: 9, col: 6 },
+      { number: 60, symbol: 'Nd', name: 'Neodymium', row: 9, col: 7 },
+      { number: 61, symbol: 'Pm', name: 'Promethium', row: 9, col: 8 },
+      { number: 62, symbol: 'Sm', name: 'Samarium', row: 9, col: 9 },
+      { number: 63, symbol: 'Eu', name: 'Europium', row: 9, col: 10 },
+      { number: 64, symbol: 'Gd', name: 'Gadolinium', row: 9, col: 11 },
+      { number: 65, symbol: 'Tb', name: 'Terbium', row: 9, col: 12 },
+      { number: 66, symbol: 'Dy', name: 'Dysprosium', row: 9, col: 13 },
+      { number: 67, symbol: 'Ho', name: 'Holmium', row: 9, col: 14 },
+      { number: 68, symbol: 'Er', name: 'Erbium', row: 9, col: 15 },
+      { number: 69, symbol: 'Tm', name: 'Thulium', row: 9, col: 16 },
+      { number: 70, symbol: 'Yb', name: 'Ytterbium', row: 9, col: 17 },
+      { number: 71, symbol: 'Lu', name: 'Lutetium', row: 9, col: 18 },
+      // Actinides (row 10, cols 4-18)
+      { number: 89, symbol: 'Ac', name: 'Actinium', row: 10, col: 4 },
+      { number: 90, symbol: 'Th', name: 'Thorium', row: 10, col: 5 },
+      { number: 91, symbol: 'Pa', name: 'Protactinium', row: 10, col: 6 },
+      { number: 92, symbol: 'U', name: 'Uranium', row: 10, col: 7 },
+      { number: 93, symbol: 'Np', name: 'Neptunium', row: 10, col: 8 },
+      { number: 94, symbol: 'Pu', name: 'Plutonium', row: 10, col: 9 },
+      { number: 95, symbol: 'Am', name: 'Americium', row: 10, col: 10 },
+      { number: 96, symbol: 'Cm', name: 'Curium', row: 10, col: 11 },
+      { number: 97, symbol: 'Bk', name: 'Berkelium', row: 10, col: 12 },
+      { number: 98, symbol: 'Cf', name: 'Californium', row: 10, col: 13 },
+      { number: 99, symbol: 'Es', name: 'Einsteinium', row: 10, col: 14 },
+      { number: 100, symbol: 'Fm', name: 'Fermium', row: 10, col: 15 },
+      { number: 101, symbol: 'Md', name: 'Mendelevium', row: 10, col: 16 },
+      { number: 102, symbol: 'No', name: 'Nobelium', row: 10, col: 17 },
+      { number: 103, symbol: 'Lr', name: 'Lawrencium', row: 10, col: 18 },
+    ];
+
+    const ELEMENTS_BY_NUMBER = Object.fromEntries(ELEMENTS.map((el) => [el.number, el]));
+
+
+    // -------------------------------------------------------------------------
+    // 2. Released Models Configuration
+    // -------------------------------------------------------------------------
+    const CHAT_RELEASED_MODELS = {
+      1: {
+        released: true,
+        fullName: 'Hydrogen',
+        subtitle: 'Everyday help',
+        category: 'Chat',
+        themeColor: '#1E3A5F',
+        borderColor: 'rgba(96, 165, 250, 0.55)',
+        hoverBorderColor: '#93C5FD',
+        activeBg: '#27538D',
+        activeBorder: '#60A5FA',
+        glowColor: 'rgba(59, 130, 246, 0.35)',
+        defaultThinkingLevel: 'Medium',
+      },
+      6: {
+        released: true,
+        fullName: 'Carbon',
+        subtitle: 'Most complex work',
+        category: 'Chat',
+        themeColor: '#3B2654',
+        borderColor: 'rgba(192, 132, 252, 0.55)',
+        hoverBorderColor: '#D8B4FE',
+        activeBg: '#573680',
+        activeBorder: '#C084FC',
+        glowColor: 'rgba(168, 85, 247, 0.35)',
+        defaultThinkingLevel: 'Low',
+      },
+      18: {
+        released: true,
+        fullName: 'Argon',
+        subtitle: 'Code and analysis',
+        category: 'Chat',
+        themeColor: '#1B4344',
+        borderColor: 'rgba(45, 212, 191, 0.55)',
+        hoverBorderColor: '#99F6E4',
+        activeBg: '#215E60',
+        activeBorder: '#2DD4BF',
+        glowColor: 'rgba(20, 184, 166, 0.35)',
+        defaultThinkingLevel: 'Low',
+      },
+    };
+
+    const TASK_RELEASED_MODELS = {
+      ...CHAT_RELEASED_MODELS,
+      8: {
+        released: true,
+        fullName: 'Oxygen',
+        subtitle: 'Fast everyday tasks',
+        category: 'Task',
+        themeColor: '#4A1D24',
+        borderColor: 'rgba(251, 113, 133, 0.55)',
+        hoverBorderColor: '#FDA4AF',
+        activeBg: '#6E2530',
+        activeBorder: '#FB7185',
+        glowColor: 'rgba(244, 63, 94, 0.35)',
+        defaultThinkingLevel: 'Low',
+      },
+      10: {
+        released: true,
+        fullName: 'Neon',
+        subtitle: 'Code and analysis',
+        category: 'Task',
+        themeColor: '#432616',
+        borderColor: 'rgba(251, 146, 60, 0.55)',
+        hoverBorderColor: '#FDBA74',
+        activeBg: '#68361A',
+        activeBorder: '#FB923C',
+        glowColor: 'rgba(249, 115, 22, 0.35)',
+        defaultThinkingLevel: 'Medium',
+      },
+      36: {
+        released: true,
+        fullName: 'Krypton',
+        subtitle: 'Most complex work',
+        category: 'Task',
+        themeColor: '#1A3C34',
+        borderColor: 'rgba(52, 211, 153, 0.55)',
+        hoverBorderColor: '#A7F3D0',
+        activeBg: '#21594B',
+        activeBorder: '#34D399',
+        glowColor: 'rgba(16, 185, 129, 0.35)',
+        defaultThinkingLevel: 'High',
+      },
+    };
+
+    const MODE_RELEASED_MODELS = {
+      Chat: CHAT_RELEASED_MODELS,
+      Task: TASK_RELEASED_MODELS,
+    };
+
+    const ALL_RELEASED_MODELS = {
+      ...CHAT_RELEASED_MODELS,
+      ...TASK_RELEASED_MODELS,
+    };
+
+    const THINKING_LEVELS = ['Low', 'Medium', 'High'];
+
+    const MODES = ['Chat', 'Task'];
+
+    const MODE_CONFIG = {
+      Chat: {
+        greeting: 'Where should we start?',
+        placeholder: 'Ask anything',
+        prompts: [
+          { id: 'budget', icon: 'budget', text: 'Set a realistic monthly budget' },
+          { id: 'mastering', icon: 'book', text: 'What subject am I closest to mastering?' },
+          { id: 'focus', icon: 'focus', text: 'Reset my focus in 5 minutes' },
+        ],
+      },
+      Task: {
+        greeting: "You name it, I'm on it",
+        placeholder: 'Describe a task',
+        prompts: [
+          { id: 'python-path', icon: 'path', text: 'Plan a Python path for my job' },
+          { id: 'argument-data', icon: 'guided-book', text: 'Find data to support my argument' },
+          { id: 'sql-data', icon: 'sql-trend', text: 'Practice SQL with my own data' },
+        ],
+      },
+    };
+
+    // -------------------------------------------------------------------------
+    // 3. Inline SVG Icons
+    // -------------------------------------------------------------------------
+    const GreetingSparkle = () => (
+      <div className="greeting-sparkle" aria-hidden="true">
+        <svg width="40" height="40" viewBox="0 0 192 192" fill="none">
+          <defs>
+            <linearGradient id="greetingSparkleGrad" x1="20" y1="20" x2="172" y2="172" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stopColor="#4285F4" />
+              <stop offset="35%" stopColor="#9B72CB" />
+              <stop offset="70%" stopColor="#D96570" />
+              <stop offset="100%" stopColor="#F4B400" />
+            </linearGradient>
+          </defs>
+          <path
+            d="M164.93 86.68c-13.56-5.84-25.42-13.84-35.6-24.01-10.17-10.17-18.18-22.04-24.01-35.6-2.23-5.19-4.04-10.54-5.42-16.02C99.45 9.26 97.85 8 96 8s-3.45 1.26-3.9 3.05c-1.38 5.48-3.18 10.81-5.42 16.02-5.84 13.56-13.84 25.43-24.01 35.6-10.17 10.16-22.04 18.17-35.6 24.01-5.19 2.23-10.54 4.04-16.02 5.42C9.26 92.55 8 94.15 8 96s1.26 3.45 3.05 3.9c5.48 1.38 10.81 3.18 16.02 5.42 13.56 5.84 25.42 13.84 35.6 24.01 10.17 10.17 18.18 22.04 24.01 35.6 2.24 5.2 4.04 10.54 5.42 16.02A4.03 4.03 0 0 0 96 184c1.85 0 3.45-1.26 3.9-3.05 1.38-5.48 3.18-10.81 5.42-16.02 5.84-13.56 13.84-25.42 24.01-35.6 10.17-10.17 22.04-18.18 35.6-24.01 5.2-2.24 10.54-4.04 16.02-5.42A4.03 4.03 0 0 0 184 96c0-1.85-1.26-3.45-3.05-3.9-5.48-1.38-10.81-3.18-16.02-5.42"
+            fill="url(#greetingSparkleGrad)"
+          />
+        </svg>
+      </div>
+    );
+
+    const HamburgerIcon = () => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round">
+        <line x1="3.5" y1="8" x2="20.5" y2="8" />
+        <line x1="3.5" y1="16" x2="20.5" y2="16" />
+      </svg>
+    );
+
+        const PlusIcon = ({ className = '' }) => (
+      <svg className={className} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round">
+        <path d="M12 5v14M5 12h14" />
+      </svg>
+    );
+
+    const ChevronDownIcon = ({ className = '' }) => (
+      <svg className={className} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 9l6 6 6-6" />
+      </svg>
+    );
+
+    const MicIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="9" y="2" width="6" height="11" rx="3" />
+        <path d="M5 10a7 7 0 0 0 14 0" />
+        <path d="M12 17v5" />
+        <path d="M8 22h8" />
+      </svg>
+    );
+
+    const SparkleIcon = () => (
+      <svg className="panel-sparkle" width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 2C12.7 7.6 16.4 11.3 22 12C16.4 12.7 12.7 16.4 12 22C11.3 16.4 7.6 12.7 2 12C7.6 11.3 11.3 7.6 12 2Z" />
+      </svg>
+    );
+
+    const CloseIcon = () => (
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+        <path d="M18 6L6 18M6 6l12 12" />
+      </svg>
+    );
+
+    const SuggestedIcon = ({ type }) => {
+      if (type === 'budget') {
+        return (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 19v-3" />
+            <path d="M10 19v-5.5" />
+            <path d="M15 19v-8" />
+            <path d="M20 19v-10" />
+            <path d="M4.5 12.5l4.5-3.5 3.5 2L19.5 5" />
+            <path d="M15.5 5h4v4" />
+          </svg>
+        );
+      }
+      if (type === 'book') {
+        return (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 7v12" />
+            <path d="M12 7c-2.2-1.8-5.3-2.2-8-1.3V17c2.7-.9 5.8-.5 8 1.3" />
+            <path d="M12 7c2.2-1.8 5.3-2.2 8-1.3V17c-2.7-.9-5.8-.5-8 1.3" />
+            <path d="M2.5 8.5v9.8c3-1 6.2-.5 9.5 1.2 3.3-1.7 6.5-2.2 9.5-1.2V8.5" />
+          </svg>
+        );
+      }
+      if (type === 'path') {
+        return (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="4" y="4" width="16" height="16" rx="4" />
+            <circle cx="9.5" cy="10" r="2.2" />
+            <circle cx="15" cy="15" r="1.6" />
+          </svg>
+        );
+      }
+      if (type === 'guided-book') {
+        return <GuidedLearningIcon />;
+      }
+      if (type === 'sql-trend') {
+        return (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 17l6-6 4 4 6-7" />
+            <path d="M16 8h4v4" />
+          </svg>
+        );
+      }
+      return (
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M8.5 20.5v-2.2c-2.3-.9-3.8-3.1-3.8-5.8 0-4.1 3.1-7.5 7.2-7.5 3.6 0 6.3 2.5 6.8 5.8l1.6 2.5c.3.5 0 1.1-.6 1.2l-1.3.2v1.6c0 1.2-.9 2-2.1 2H14v2.2" />
+          <path d="M9.5 10.5v3" />
+          <path d="M12 9v6" />
+          <path d="M14.5 10.5v3" />
+        </svg>
+      );
+    };
+
+    const PaperclipIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21.44 11.05l-8.49 8.49a5.5 5.5 0 0 1-7.78-7.78l8.49-8.49a3.5 3.5 0 0 1 4.95 4.95l-8.49 8.49a1.5 1.5 0 0 1-2.12-2.12l7.78-7.78" />
+      </svg>
+    );
+
+    const NasIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="4" y="4" width="16" height="13" rx="2.5" />
+        <path d="M9.5 4v13M14.5 4v13" />
+        <circle cx="6.75" cy="14" r="0.8" fill="currentColor" stroke="none" />
+        <circle cx="17.25" cy="14" r="0.8" fill="currentColor" stroke="none" />
+        <path d="M12 17v3M7 20h10" />
+      </svg>
+    );
+
+    const DotsHorizontalIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="6" cy="12" r="1.5" />
+        <circle cx="12" cy="12" r="1.5" />
+        <circle cx="18" cy="12" r="1.5" />
+      </svg>
+    );
+
+    const ChevronRightIcon = ({ className = '' }) => (
+      <svg className={`left-menu-chevron ${className}`} width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 6l6 6-6 6" />
+      </svg>
+    );
+
+    const FruitImageIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="4" />
+        <circle cx="9.5" cy="15" r="2.5" />
+        <circle cx="14.8" cy="13.8" r="2.5" />
+        <path d="M9.5 12.5C9.5 9.8 11.2 8 13.8 7.2" />
+        <path d="M14.8 11.3C14.6 9.6 14.2 8.3 13.8 7.2" />
+        <path d="M13.8 7.2C15.8 6.4 17.2 7 17.5 8.1C16.8 9.2 15.4 8.8 13.8 7.2Z" />
+      </svg>
+    );
+
+    const VideoSlateIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="5" width="18" height="14" rx="2.5" />
+        <path d="M3 10h18M8 5l2.5 5M14 5l2.5 5" />
+      </svg>
+    );
+
+    const MusicNoteIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M9 18V6l11-2v12" />
+        <path d="M9 10l11-2" />
+        <circle cx="6" cy="18" r="3" />
+        <circle cx="17" cy="16" r="3" />
+      </svg>
+    );
+
+    const CanvasIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="8" y="4" width="12" height="12" rx="2" />
+        <path d="M14 8v4M12 10h4" />
+        <path d="M16 19H7a3 3 0 0 1-3-3V8" />
+      </svg>
+    );
+
+    const DeepResearchIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(45 12 12)" />
+        <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-45 12 12)" />
+      </svg>
+    );
+
+    const GuidedLearningIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 8.5V19" />
+        <path d="M3.5 7.5A4.5 4.5 0 0 1 12 8.5a4.5 4.5 0 0 1 8.5-1V18a4.5 4.5 0 0 0-8.5 1 4.5 4.5 0 0 0-8.5-1V7.5Z" />
+        <path d="M12 3.5v1M8.5 4.5l.5.8M15.5 4.5l-.5.8" />
+      </svg>
+    );
+
+    const PersonalIntelIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="10.5" cy="8" r="3.5" />
+        <path d="M4 19a6.5 6.5 0 0 1 10-5.4" />
+        <path d="M18 13.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2Z" fill="currentColor" stroke="none" />
+      </svg>
+    );
+
+    const CheckSmallIcon = () => (
+      <svg width="11" height="11" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3.5 8.5l3 3 6-6.5" />
+      </svg>
+    );
+
+    const TOOL_SHORT_LABELS = {
+      'Create image': 'Image',
+      'Create video': 'Video',
+      'Create music': 'Music',
+      'Canvas': 'Canvas',
+      'Deep research': 'Deep research',
+      'Guided learning': 'Guided learning',
+    };
+
+    const ToolIcon = ({ tool }) => {
+      switch (tool) {
+        case 'Create image': return <FruitImageIcon size={16} />;
+        case 'Create video': return <VideoSlateIcon size={16} />;
+        case 'Create music': return <MusicNoteIcon size={16} />;
+        case 'Canvas': return <CanvasIcon size={16} />;
+        case 'Deep research': return <DeepResearchIcon size={16} />;
+        case 'Guided learning': return <GuidedLearningIcon size={16} />;
+        default: return null;
+      }
+    };
+
+    // -------------------------------------------------------------------------
+    // 4. Element Detail / Preview Popover Card Component
+    // -------------------------------------------------------------------------
+    function ElementPopover({
+      mode = 'hover', // 'hover' = light preview, 'pinned' = full card opened by click
+      element,
+      releaseInfo,
+      thinkingLevel,
+      panelRef,
+      getCellEl, // read lazily: the cell ref may not exist yet when this renders
+      onSelectThinkingLevel,
+    }) {
+      const popoverRef = useRef(null);
+      const [coords, setCoords] = useState({ left: 0, bottom: 0, top: 0, below: false, arrowLeft: 24, visible: false });
+
+      useLayoutEffect(() => {
+        const updatePosition = () => {
+          const panelEl = panelRef.current;
+          const popEl = popoverRef.current;
+          const cellEl = getCellEl();
+          if (!panelEl || !cellEl || !popEl || !element) return;
+
+          const panelRect = panelEl.getBoundingClientRect();
+          const cellRect = cellEl.getBoundingClientRect();
+          const cardWidth = popEl.offsetWidth;
+
+          const cellLeft = cellRect.left - panelRect.left;
+          const cellRight = cellRect.right - panelRect.left;
+          const cellCenterX = cellLeft + cellRect.width / 2;
+          const cellTop = cellRect.top - panelRect.top;
+
+          const safeMargin = 14;
+          let left;
+
+          if (element.col <= 3) {
+            // Left-edge collision guard: expand rightward aligned with cell left
+            left = cellLeft;
+          } else if (element.col >= 15) {
+            // Right-edge collision guard: expand leftward aligned with cell right
+            left = cellRight - cardWidth;
+          } else {
+            // Centered above cell
+            left = cellCenterX - cardWidth / 2;
+          }
+
+          // Strict panel horizontal clamping
+          left = Math.max(safeMargin, Math.min(panelRect.width - cardWidth - safeMargin, left));
+          const arrowLeft = Math.max(14, Math.min(cardWidth - 14, cellCenterX - left));
+          const bottom = panelRect.height - cellTop + 8;
+          // Top rows: open below the cell so the card never covers the prompt bar
+          const below = element.row <= 2 && element.row < 9;
+          const top = cellRect.bottom - panelRect.top + 8;
+
+          setCoords({ left, bottom, top, below, arrowLeft, visible: true });
+        };
+
+        updatePosition();
+        window.addEventListener('resize', updatePosition);
+        return () => window.removeEventListener('resize', updatePosition);
+      // getCellEl is a fresh closure each render; keying on it would re-run this every render
+      }, [element, panelRef, releaseInfo]);
+
+      if (!element) return null;
+
+      const isReleased = Boolean(releaseInfo);
+
+      return (
+        <div
+          ref={popoverRef}
+          className={`element-popover ${isReleased ? 'popover-released' : 'popover-coming-soon'} ${mode === 'hover' ? 'is-preview' : 'is-pinned'} ${coords.below ? 'is-below' : ''}`}
+          style={{
+            left: `${coords.left}px`,
+            ...(coords.below ? { top: `${coords.top}px` } : { bottom: `${coords.bottom}px` }),
+            visibility: coords.visible ? 'visible' : 'hidden',
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="popover-head">
+            <div
+              className="popover-tile"
+              style={
+                isReleased
+                  ? {
+                      backgroundColor: releaseInfo.themeColor,
+                      borderColor: releaseInfo.borderColor,
+                    }
+                  : undefined
+              }
+            >
+              <span className="popover-tile-num">{element.number}</span>
+              <span className="popover-tile-sym">{element.symbol}</span>
+            </div>
+
+            <div className="popover-meta">
+              <div className="popover-title">
+                {isReleased ? releaseInfo.fullName : element.name}
+              </div>
+              <div className="popover-subtitle">
+                {isReleased ? releaseInfo.subtitle : 'Coming soon'}
+              </div>
+            </div>
+          </div>
+
+          {isReleased && (
+            <div className="thinking-wrap"><div className="thinking-clip">
+            <div className="thinking-section">
+              <div className="thinking-label">Thinking level</div>
+              <div className="thinking-pills" role="group" aria-label="Thinking level">
+                {/* One highlight that slides to the active option instead of jumping */}
+                <span
+                  className="thinking-indicator"
+                  aria-hidden="true"
+                  style={{
+                    '--idx': Math.max(0, THINKING_LEVELS.indexOf(thinkingLevel)),
+                    backgroundColor: releaseInfo.activeBg,
+                    borderColor: releaseInfo.activeBorder,
+                    boxShadow: `0 0 12px ${releaseInfo.glowColor}`,
+                  }}
+                />
+                {THINKING_LEVELS.map((level) => {
+                  const isActive = thinkingLevel === level;
+                  return (
+                    <button
+                      key={level}
+                      type="button"
+                      aria-pressed={isActive}
+                      className={`thinking-pill ${isActive ? 'is-active' : ''}`}
+                      onClick={() => onSelectThinkingLevel(element.number, level)}
+                    >
+                      {level}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            </div></div>
+          )}
+
+          <div
+            className="popover-caret"
+            style={{ left: `${coords.arrowLeft}px` }}
+          />
+        </div>
+      );
+    }
+
+    // -------------------------------------------------------------------------
+    // 5. Main Application
+    // -------------------------------------------------------------------------
+    const LEFT_MENU_TOOLS = [
+      { id: 'Create image', label: 'Create image', icon: <FruitImageIcon /> },
+      { id: 'Create video', label: 'Create video', icon: <VideoSlateIcon /> },
+      { id: 'Create music', label: 'Create music', icon: <MusicNoteIcon /> },
+      { id: 'Canvas', label: 'Canvas', icon: <CanvasIcon /> },
+      { id: 'Deep research', label: 'Deep research', icon: <DeepResearchIcon /> },
+      { id: 'Guided learning', label: 'Guided learning', icon: <GuidedLearningIcon /> },
+    ];
+
+    const MORE_UPLOAD_OPTIONS = [
+      { id: 'Import code', label: 'Import code' },
+      { id: 'Add from URL', label: 'Add from URL' },
+      { id: 'Paste snippet', label: 'Paste snippet' },
+    ];
+
+    function App() {
+      const [isSplitScreen, setIsSplitScreen] = useState(() => typeof window !== 'undefined' && window.innerWidth <= 980);
+      const [isTableOpen, setIsTableOpen] = useState(false);
+      const [isLeftMenuOpen, setIsLeftMenuOpen] = useState(false);
+      const [isMoreUploadsOpen, setIsMoreUploadsOpen] = useState(false);
+      const [activeTool, setActiveTool] = useState(null);
+      const [personalIntel, setPersonalIntel] = useState(true);
+      const [thinkingLevels, setThinkingLevels] = useState({
+        1: ALL_RELEASED_MODELS[1].defaultThinkingLevel,   // H -> Medium
+        6: ALL_RELEASED_MODELS[6].defaultThinkingLevel,   // C -> Low
+        8: ALL_RELEASED_MODELS[8].defaultThinkingLevel,   // O -> Low
+        10: ALL_RELEASED_MODELS[10].defaultThinkingLevel, // Ne -> Medium
+        18: ALL_RELEASED_MODELS[18].defaultThinkingLevel, // Ar -> Low
+        36: ALL_RELEASED_MODELS[36].defaultThinkingLevel, // Kr -> High
+      });
+      const [modeModels, setModeModels] = useState({
+        Chat: { type: 'element', number: 1 },  // Hydrogen
+        Task: { type: 'element', number: 10 }, // Neon
+      });
+      const [activeMode, setActiveMode] = useState('Chat');
+      const currentReleasedModels = MODE_RELEASED_MODELS[activeMode] || CHAT_RELEASED_MODELS;
+      const selectedModel = modeModels[activeMode] || modeModels.Chat;
+      const setSelectedModel = useCallback((modelOrUpdater) => {
+        setModeModels((prev) => {
+          const current = prev[activeMode] || { type: 'element', number: 1 };
+          const next = typeof modelOrUpdater === 'function' ? modelOrUpdater(current) : modelOrUpdater;
+          return {
+            ...prev,
+            [activeMode]: next,
+          };
+        });
+      }, [activeMode]);
+      const [promptText, setPromptText] = useState('');
+      const [isListening, setIsListening] = useState(false);
+      const [toast, setToast] = useState(null);
+
+      // Popover tracking state
+      const [hoveredElementNum, setHoveredElementNum] = useState(null);
+      const [pinnedElementNum, setPinnedElementNum] = useState(null);
+      const [hoveredSeries, setHoveredSeries] = useState(null); // 'lanthanides' | 'actinides' | null
+      const [query, setQuery] = useState('');
+      const q = query.trim().toLowerCase();
+      const matchesQuery = (el) =>
+        !q ||
+        el.symbol.toLowerCase().includes(q) ||
+        el.name.toLowerCase().includes(q) ||
+        String(el.number) === q;
+
+      const topHeaderRef = useRef(null);
+      const anchorRef = useRef(null);
+      const panelRef = useRef(null);
+      const inputRef = useRef(null);
+      const fileInputRef = useRef(null);
+      const cellRefs = useRef({});
+      const hoverCloseTimer = useRef(null);
+      const toastTimer = useRef(null);
+
+      const showToast = useCallback((message) => {
+        if (toastTimer.current) clearTimeout(toastTimer.current);
+        setToast(message);
+        toastTimer.current = setTimeout(() => setToast(null), 2600);
+      }, []);
+
+      // Derive trigger button display info (show thinking level whenever not Low)
+      const triggerDisplay = (() => {
+        const el = ELEMENTS_BY_NUMBER[selectedModel.number];
+        const isReleased = Boolean(currentReleasedModels[selectedModel.number]);
+        const level = isReleased ? thinkingLevels[selectedModel.number] : null;
+        return {
+          label: el ? el.name : 'Hydrogen',
+          thinkingLabel: level && level !== 'Low' ? level : null,
+          isComingSoon: !isReleased,
+        };
+      })();
+
+      // A clicked (pinned) card takes priority: hovering other cells shows no preview while it is open
+      const activePopoverNum = pinnedElementNum ?? hoveredElementNum;
+
+      // Close open menus/panels when clicking outside or pressing Escape
+      useEffect(() => {
+        if (!isTableOpen && !isLeftMenuOpen) return;
+
+        const handleOutsideClick = (e) => {
+          const inAnchor = anchorRef.current && anchorRef.current.contains(e.target);
+          const inTopHeader = topHeaderRef.current && topHeaderRef.current.contains(e.target);
+          const inPanel = panelRef.current && panelRef.current.contains(e.target);
+          if (!inAnchor && !inTopHeader && !inPanel) {
+            setIsTableOpen(false);
+            setIsLeftMenuOpen(false);
+            setIsMoreUploadsOpen(false);
+            setHoveredElementNum(null);
+            setPinnedElementNum(null);
+          }
+        };
+
+        const handleKeyDown = (e) => {
+          if (e.key === 'Escape') {
+            if (isLeftMenuOpen) {
+              if (isMoreUploadsOpen) {
+                setIsMoreUploadsOpen(false);
+              } else {
+                setIsLeftMenuOpen(false);
+              }
+            } else if (activePopoverNum) {
+              setHoveredElementNum(null);
+              setPinnedElementNum(null);
+            } else {
+              setIsTableOpen(false);
+            }
+          }
+        };
+
+        document.addEventListener('mousedown', handleOutsideClick);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+          document.removeEventListener('mousedown', handleOutsideClick);
+          document.removeEventListener('keydown', handleKeyDown);
+        };
+      }, [isTableOpen, isLeftMenuOpen, isMoreUploadsOpen, activePopoverNum]);
+
+      // Re-trigger ambient glow bloom when switching between full-screen and half-screen
+      useEffect(() => {
+        let prev = window.innerWidth <= 980;
+        const handleResize = () => {
+          const current = window.innerWidth <= 980;
+          if (current !== prev) {
+            prev = current;
+            setIsSplitScreen(current);
+          }
+        };
+        window.addEventListener('resize', handleResize);
+        const mql = window.matchMedia('(max-width: 980px)');
+        const mqlHandler = (e) => setIsSplitScreen(e.matches);
+        mql.addEventListener('change', mqlHandler);
+        return () => {
+          window.removeEventListener('resize', handleResize);
+          mql.removeEventListener('change', mqlHandler);
+        };
+      }, []);
+
+      useEffect(() => {
+        return () => {
+          if (hoverCloseTimer.current) clearTimeout(hoverCloseTimer.current);
+          if (toastTimer.current) clearTimeout(toastTimer.current);
+        };
+      }, []);
+
+      const clearHoverTimer = () => {
+        if (hoverCloseTimer.current) {
+          clearTimeout(hoverCloseTimer.current);
+          hoverCloseTimer.current = null;
+        }
+      };
+
+      const scheduleHoverClear = () => {
+        clearHoverTimer();
+        hoverCloseTimer.current = setTimeout(() => {
+          setHoveredElementNum(null);
+        }, 140);
+      };
+
+      const handleCellPointerEnter = (e, num) => {
+        if (e.pointerType === 'touch') return;
+        clearHoverTimer();
+        setHoveredElementNum(num);
+      };
+
+      const handleCellPointerLeave = (e) => {
+        if (e.pointerType === 'touch') return;
+        scheduleHoverClear();
+      };
+
+      // Click selects the model and pins its card (it survives the cursor leaving);
+      // clicking the same cell again unpins it.
+      const handleCellClick = (e, num) => {
+        e.stopPropagation();
+        clearHoverTimer();
+        setHoveredElementNum(null);
+        setSelectedModel({ type: 'element', number: num });
+        setPinnedElementNum((prev) => (prev === num ? null : num));
+      };
+
+      const handleSelectThinkingLevel = (num, level) => {
+        setThinkingLevels((prev) => ({ ...prev, [num]: level }));
+        setSelectedModel({ type: 'element', number: num });
+      };
+
+      const handleToggleTable = useCallback(() => {
+        setIsLeftMenuOpen(false);
+        setIsMoreUploadsOpen(false);
+        setHoveredElementNum(null);
+        setPinnedElementNum(null);
+        setIsTableOpen((prev) => !prev);
+      }, []);
+
+      const handleToggleLeftMenu = () => {
+        setIsTableOpen(false);
+        setHoveredElementNum(null);
+        setPinnedElementNum(null);
+        setIsLeftMenuOpen((prev) => {
+          if (prev) setIsMoreUploadsOpen(false);
+          return !prev;
+        });
+      };
+
+      const handleSuggestedPromptClick = (text) => {
+        setPromptText(text);
+        setIsTableOpen(false);
+        setIsLeftMenuOpen(false);
+        setIsMoreUploadsOpen(false);
+        inputRef.current?.focus();
+      };
+
+      const handlePromptSubmit = (e) => {
+        e.preventDefault();
+        const trimmed = promptText.trim();
+        if (!trimmed) return;
+        const levelSuffix =
+          selectedModel.type === 'element' && currentReleasedModels[selectedModel.number]
+            ? ` · Thinking: ${thinkingLevels[selectedModel.number]}`
+            : triggerDisplay.isComingSoon
+            ? ' (Preview)'
+            : '';
+        const toolPrefix = activeTool ? `[${activeTool}] ` : '';
+        showToast(`${toolPrefix}[${activeMode}] Ready for ${triggerDisplay.label}${levelSuffix}`);
+        setPromptText('');
+      };
+
+      const handleMicClick = useCallback(() => {
+        setIsListening((prev) => {
+          const next = !prev;
+          showToast(next ? 'Voice input listening...' : 'Voice input paused');
+          return next;
+        });
+      }, [showToast]);
+
+      // Global keyboard shortcuts matching hover tooltips: ^⇧M and ^⇧D
+      useEffect(() => {
+        const handleShortcuts = (e) => {
+          if (e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey) {
+            if (e.code === 'KeyM') {
+              e.preventDefault();
+              handleToggleTable();
+            } else if (e.code === 'KeyD') {
+              e.preventDefault();
+              handleMicClick();
+            }
+          }
+        };
+        document.addEventListener('keydown', handleShortcuts);
+        return () => document.removeEventListener('keydown', handleShortcuts);
+      }, [handleToggleTable, handleMicClick]);
+
+      const handleFilesSelected = (e) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+          const summary = files.length === 1 ? files[0].name : `${files.length} files selected`;
+          showToast(`Attached: ${summary}`);
+        }
+        e.target.value = '';
+        setIsLeftMenuOpen(false);
+        setIsMoreUploadsOpen(false);
+      };
+
+      const handleSelectLeftTool = (toolId) => {
+        setActiveTool((prev) => (prev === toolId ? null : toolId));
+        setIsLeftMenuOpen(false);
+        setIsMoreUploadsOpen(false);
+        inputRef.current?.focus();
+      };
+
+      const modeConfig = MODE_CONFIG[activeMode];
+
+      return (
+        <main className="stage">
+          <div className={`ambient-glow lm-glow is-${activeMode.toLowerCase()}`} aria-hidden="true">
+            <div className="ambient-glow-backdrop ambient-backdrop-chat" />
+            <div className="ambient-glow-backdrop ambient-backdrop-task" />
+            <div className="ambient-glow-layer ambient-glow-chat" />
+            <div className="ambient-glow-layer ambient-glow-task" />
+          </div>
+
+          <header className="top-header" ref={topHeaderRef}>
+            <div className="top-header-left">
+              <button
+                type="button"
+                className="top-header-btn"
+                aria-label="Main menu"
+                onClick={() => showToast('Main menu placeholder')}
+              >
+                <HamburgerIcon />
+              </button>
+              <div className={`tooltip-wrap ${isTableOpen ? 'is-suppressed' : ''}`}>
+                <button
+                  type="button"
+                  className={`model-trigger ${isTableOpen ? 'is-open' : ''}`}
+                  aria-expanded={isTableOpen}
+                  aria-haspopup="dialog"
+                  onClick={handleToggleTable}
+                >
+                  {triggerDisplay.isComingSoon && <span className="dot-ring coming-soon-ring" />}
+                  <span>{triggerDisplay.label}</span>
+                  {triggerDisplay.thinkingLabel && (
+                    <span className="model-trigger-level">{triggerDisplay.thinkingLabel}</span>
+                  )}
+                  <ChevronDownIcon className="chevron" />
+                </button>
+                <span className="bar-tooltip" role="tooltip">
+                  Switch model (^⇧M)
+                </span>
+              </div>
+            </div>
+          </header>
+
+          <div className="main-container">
+            <div className="greeting-wrap">
+              <GreetingSparkle />
+              <h1 className="greeting">
+                {modeConfig.greeting}
+              </h1>
+            </div>
+
+            {/* Prompt Bar, Left Menu & Periodic Table Popover Anchor */}
+            <div className="prompt-anchor" ref={anchorRef}>
+              <form className="prompt-bar" onSubmit={handlePromptSubmit}>
+                <button
+                  type="button"
+                  className={`icon-circle-btn ${isLeftMenuOpen ? 'is-open' : ''}`}
+                  aria-label={isLeftMenuOpen ? 'Close tools and upload menu' : 'Open tools and upload menu'}
+                  aria-expanded={isLeftMenuOpen}
+                  aria-haspopup="menu"
+                  onClick={handleToggleLeftMenu}
+                >
+                  <PlusIcon className="plus-to-close" />
+                </button>
+
+                {activeTool && (
+                  <span className="active-tool-chip">
+                    <ToolIcon tool={activeTool} />
+                    <span>{TOOL_SHORT_LABELS[activeTool] || activeTool}</span>
+                    <button
+                      type="button"
+                      className="active-tool-clear"
+                      aria-label={`Remove ${TOOL_SHORT_LABELS[activeTool] || activeTool}`}
+                      onClick={() => setActiveTool(null)}
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round">
+                        <path d="M18 6L6 18M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </span>
+                )}
+
+                <input
+                  ref={inputRef}
+                  type="text"
+                  className="prompt-input"
+                  placeholder={modeConfig.placeholder}
+                  aria-label={modeConfig.placeholder}
+                  value={promptText}
+                  onChange={(e) => setPromptText(e.target.value)}
+                />
+
+                <div className="prompt-right">
+                  <div className={`tooltip-wrap model-trigger-wrap ${isTableOpen ? 'is-suppressed' : ''}`}>
+                    <button
+                      type="button"
+                      className={`model-trigger ${isTableOpen ? 'is-open' : ''}`}
+                      aria-expanded={isTableOpen}
+                      aria-haspopup="dialog"
+                      onClick={handleToggleTable}
+                    >
+                      {triggerDisplay.isComingSoon && <span className="dot-ring coming-soon-ring" />}
+                      <span>{triggerDisplay.label}</span>
+                      {triggerDisplay.thinkingLabel && (
+                        <span className="model-trigger-level">{triggerDisplay.thinkingLabel}</span>
+                      )}
+                      <ChevronDownIcon className="chevron" />
+                    </button>
+                    <span className="bar-tooltip" role="tooltip">
+                      Switch model (^⇧M)
+                    </span>
+                  </div>
+
+                  <div className="tooltip-wrap">
+                    <button
+                      type="button"
+                      className={`icon-circle-btn ${isListening ? 'is-listening' : ''}`}
+                      aria-label="Dictate"
+                      onClick={handleMicClick}
+                    >
+                      <MicIcon />
+                    </button>
+                    <span className="bar-tooltip is-right-aligned" role="tooltip">
+                      Dictate (^⇧D)
+                    </span>
+                  </div>
+                </div>
+              </form>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                hidden
+                onChange={handleFilesSelected}
+              />
+
+              {/* Left Action Menu */}
+              {isLeftMenuOpen && (
+                <div className="left-menu" role="menu" aria-label="Uploads and creative tools">
+                  <button
+                    type="button"
+                    className="left-menu-item"
+                    role="menuitem"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <PaperclipIcon />
+                    <span>Upload files</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="left-menu-item"
+                    role="menuitem"
+                    onClick={() => {
+                      setIsLeftMenuOpen(false);
+                      setIsMoreUploadsOpen(false);
+                      showToast('Web drive browser placeholder');
+                    }}
+                  >
+                    <NasIcon />
+                    <span>Add from web drive</span>
+                  </button>
+
+                  <div
+                    className="more-uploads-wrap"
+                    onMouseEnter={() => setIsMoreUploadsOpen(true)}
+                    onMouseLeave={() => setIsMoreUploadsOpen(false)}
+                  >
+                    <button
+                      type="button"
+                      className={`left-menu-item ${isMoreUploadsOpen ? 'is-active' : ''}`}
+                      role="menuitem"
+                      aria-expanded={isMoreUploadsOpen}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsMoreUploadsOpen((prev) => !prev);
+                      }}
+                    >
+                      <DotsHorizontalIcon />
+                      <span>More uploads</span>
+                      <ChevronRightIcon className={isMoreUploadsOpen ? 'is-open' : ''} />
+                    </button>
+
+                    {isMoreUploadsOpen && (
+                      <div className="left-submenu" role="menu" aria-label="More upload sources">
+                        {MORE_UPLOAD_OPTIONS.map((opt) => (
+                          <button
+                            key={opt.id}
+                            type="button"
+                            className="left-menu-item"
+                            role="menuitem"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setIsLeftMenuOpen(false);
+                              setIsMoreUploadsOpen(false);
+                              showToast(`${opt.label} placeholder`);
+                            }}
+                          >
+                            <span>{opt.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="left-menu-divider" role="separator" />
+
+                  {LEFT_MENU_TOOLS.map((tool) => (
+                    <button
+                      key={tool.id}
+                      type="button"
+                      className={`left-menu-item ${activeTool === tool.id ? 'is-active' : ''}`}
+                      role="menuitem"
+                      onClick={() => handleSelectLeftTool(tool.id)}
+                    >
+                      {tool.icon}
+                      <span>{tool.label}</span>
+                    </button>
+                  ))}
+
+                  <button
+                    type="button"
+                    className="left-menu-item"
+                    role="menuitemcheckbox"
+                    aria-checked={personalIntel}
+                    onClick={() => setPersonalIntel((prev) => !prev)}
+                  >
+                    <PersonalIntelIcon />
+                    <span className="left-menu-label">
+                      <span>Personal Intelligence</span>
+                      <span className="left-menu-sub">Labs</span>
+                    </span>
+                    <span className={`labs-switch ${personalIntel ? 'is-on' : ''}`} aria-hidden="true">
+                      <span className="labs-switch-thumb">
+                        {personalIntel && <CheckSmallIcon />}
+                      </span>
+                    </span>
+                  </button>
+                </div>
+              )}
+
+              {/* Model Periodic Table Panel */}
+              {isTableOpen && (
+                <section
+                  ref={panelRef}
+                  className="periodic-panel"
+                  role="dialog"
+                  aria-label="Model periodic table"
+                  onClick={() => setPinnedElementNum(null)}
+                >
+                  {/* Top Bar */}
+                  <div className="panel-header">
+                    <div className="panel-title-group">
+                      <SparkleIcon />
+                      <span>Model periodic table</span>
+                    </div>
+                    <input
+                      type="search"
+                      className="panel-search"
+                      placeholder="Search element or number"
+                      aria-label="Search elements"
+                      value={query}
+                      onChange={(e) => setQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape' && query) {
+                          e.stopPropagation();
+                          setQuery('');
+                        }
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="panel-close-btn"
+                      aria-label="Close model periodic table"
+                      onClick={() => {
+                        setIsTableOpen(false);
+                        setHoveredElementNum(null);
+                        setPinnedElementNum(null);
+                      }}
+                    >
+                      <CloseIcon />
+                    </button>
+                  </div>
+
+                  {/* Periodic Grid */}
+                  <div className="periodic-grid-scroll">
+                    <div className="periodic-grid">
+                      {/* Group numbers 1-18 */}
+                      {Array.from({ length: 18 }, (_, i) => i + 1).map((groupNum) => (
+                        <div
+                          key={`group-${groupNum}`}
+                          className="group-label"
+                          style={{ gridColumn: groupNum + 1, gridRow: 1 }}
+                        >
+                          {groupNum}
+                        </div>
+                      ))}
+
+                      {/* Period numbers 1-7 */}
+                      {Array.from({ length: 7 }, (_, i) => i + 1).map((periodNum) => (
+                        <div
+                          key={`period-${periodNum}`}
+                          className="period-label"
+                          style={{ gridColumn: 1, gridRow: periodNum + 1 }}
+                        >
+                          {periodNum}
+                        </div>
+                      ))}
+
+                      {/* Placeholder markers for Lanthanides (57-71) and Actinides (89-103) */}
+                      <div
+                        className="el-range-marker"
+                        style={{ gridColumn: 4, gridRow: 7 }}
+                        onMouseEnter={() => setHoveredSeries('lanthanides')}
+                        onMouseLeave={() => setHoveredSeries(null)}
+                        title="Lanthanides (57 La – 71 Lu)"
+                      >
+                        57-71
+                      </div>
+                      <div
+                        className="el-range-marker"
+                        style={{ gridColumn: 4, gridRow: 8 }}
+                        onMouseEnter={() => setHoveredSeries('actinides')}
+                        onMouseLeave={() => setHoveredSeries(null)}
+                        title="Actinides (89 Ac – 103 Lr)"
+                      >
+                        89-103
+                      </div>
+
+                      {/* Labels for the detached lanthanide / actinide rows */}
+                      <div
+                        className="series-label"
+                        style={{ gridRow: 10 }}
+                        onMouseEnter={() => setHoveredSeries('lanthanides')}
+                        onMouseLeave={() => setHoveredSeries(null)}
+                      >
+                        Lanthanides
+                      </div>
+                      <div
+                        className="series-label"
+                        style={{ gridRow: 11 }}
+                        onMouseEnter={() => setHoveredSeries('actinides')}
+                        onMouseLeave={() => setHoveredSeries(null)}
+                      >
+                        Actinides
+                      </div>
+
+                      {/* 118 Chemical Elements */}
+                      {ELEMENTS.map((el) => {
+                        const releaseInfo = currentReleasedModels[el.number];
+                        const isReleased = Boolean(releaseInfo);
+                        const isSelected =
+                          selectedModel.type === 'element' && selectedModel.number === el.number;
+                        const isHovered =
+                          hoveredElementNum === el.number || pinnedElementNum === el.number;
+                        const isSeriesHighlight =
+                          (hoveredSeries === 'lanthanides' && el.row === 9) ||
+                          (hoveredSeries === 'actinides' && el.row === 10);
+
+                        const gridRow = el.row + 1;
+                        const gridCol = el.col + 1;
+
+                        const isMatch = Boolean(q) && matchesQuery(el);
+                        const isDimmed = Boolean(q) && !isMatch;
+
+                        const cellStyle = isReleased
+                          ? {
+                              gridColumn: gridCol,
+                              gridRow,
+                              backgroundColor: releaseInfo.themeColor,
+                              borderColor:
+                                isSelected || isHovered
+                                  ? releaseInfo.hoverBorderColor
+                                  : releaseInfo.borderColor,
+                              boxShadow: isSelected
+                                ? `0 0 0 1px ${releaseInfo.activeBorder}, 0 0 14px ${releaseInfo.glowColor}`
+                                : undefined,
+                            }
+                          : {
+                              gridColumn: gridCol,
+                              gridRow,
+                            };
+
+                        return (
+                          <button
+                            key={el.number}
+                            ref={(node) => {
+                              if (node) cellRefs.current[el.number] = node;
+                            }}
+                            type="button"
+                            className={[
+                              'el-cell',
+                              isReleased ? 'is-released' : 'is-coming-soon',
+                              isSelected ? 'is-selected' : '',
+                              isHovered ? 'is-hovered' : '',
+                              isSeriesHighlight ? 'is-series-highlight' : '',
+                              isMatch ? 'is-match' : '',
+                              isDimmed ? 'is-dimmed' : '',
+                            ]
+                              .filter(Boolean)
+                              .join(' ')}
+                            style={cellStyle}
+                            aria-label={`${el.number} ${el.name}${isReleased ? ' (Released)' : ' (Coming soon)'}`}
+                            aria-pressed={isSelected}
+                            onPointerEnter={(e) => handleCellPointerEnter(e, el.number)}
+                            onPointerLeave={handleCellPointerLeave}
+                            onFocus={(e) => {
+                              if (e.target.matches(':focus-visible')) {
+                                clearHoverTimer();
+                                setHoveredElementNum(el.number);
+                              }
+                            }}
+                            onBlur={(e) => {
+                              if (e.relatedTarget && e.relatedTarget.closest?.('.element-popover')) return;
+                              if (e.target.matches(':focus-visible')) {
+                                scheduleHoverClear();
+                              }
+                            }}
+                            onClick={(e) => handleCellClick(e, el.number)}
+                          >
+                            <span className="el-num">{el.number}</span>
+                            <span className="el-sym">{el.symbol}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Footer: currently selected model */}
+                  {(() => {
+                    const selEl = ELEMENTS_BY_NUMBER[selectedModel.number];
+                    const selInfo = currentReleasedModels[selectedModel.number];
+                    return (
+                      <div className="panel-footer" aria-live="polite">
+                        <span className="footer-model">
+                          {selInfo ? (
+                            <span className="footer-dot" style={{ background: selInfo.activeBorder }} />
+                          ) : (
+                            <span className="dot-ring" />
+                          )}
+                          {selEl.name}
+                        </span>
+                        {selInfo && (
+                          <span className="footer-meta">Thinking · {thinkingLevels[selectedModel.number]}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+
+                  {/* One popover instance: a light preview while hovering, expands in place
+                      into the full card once its cell is clicked (stays after the cursor leaves) */}
+                  {activePopoverNum && (
+                    <ElementPopover
+                      mode={activePopoverNum === pinnedElementNum ? 'pinned' : 'hover'}
+                      element={ELEMENTS_BY_NUMBER[activePopoverNum]}
+                      releaseInfo={currentReleasedModels[activePopoverNum]}
+                      thinkingLevel={thinkingLevels[activePopoverNum]}
+                      panelRef={panelRef}
+                      getCellEl={() => cellRefs.current[activePopoverNum]}
+                      onSelectThinkingLevel={handleSelectThinkingLevel}
+                    />
+                  )}
+                </section>
+              )}
+            </div>
+
+            {/* Mode Segmented Control & Suggested Prompts */}
+            <div className="lower-content">
+              <div className={`segmented-control is-${activeMode.toLowerCase()}`} role="tablist" aria-label="Interaction mode">
+                <div className="segmented-slider" aria-hidden="true" />
+                {MODES.map((mode) => (
+                  <button
+                    key={mode}
+                    type="button"
+                    role="tab"
+                    aria-selected={activeMode === mode}
+                    className={`segment-btn ${activeMode === mode ? 'is-active' : ''}`}
+                    onClick={() => setActiveMode(mode)}
+                  >
+                    {mode}
+                  </button>
+                ))}
+              </div>
+
+              <div className="suggested-list">
+                {modeConfig.prompts.map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    className="suggested-item"
+                    onClick={() => handleSuggestedPromptClick(item.text)}
+                  >
+                    <SuggestedIcon type={item.icon} />
+                    <span>{item.text}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {toast && (
+            <div className="prototype-toast" role="status" aria-live="polite">
+              <span>{toast}</span>
+            </div>
+          )}
+        </main>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
